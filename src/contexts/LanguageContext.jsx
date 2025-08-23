@@ -4,6 +4,10 @@ import * as RNLocalize from 'react-native-localize';
 import { I18n } from 'i18n-js';
 import en from '../i18n/locales/en.json';
 import fr from '../i18n/locales/fr.json';
+import { registerTranslation, en as enPaperDates, fr as frPaperDates } from 'react-native-paper-dates';
+
+registerTranslation('en', enPaperDates);
+registerTranslation('fr', frPaperDates);
 
 export const LanguageContext = createContext();
 

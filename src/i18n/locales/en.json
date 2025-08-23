@@ -88,5 +88,10 @@
   "date_oldest": "Date (Oldest first)",
   "description": "Description",
   "informations": "Informations",
-  "locale_code": "en"
+  "locale_code": "en",
+  "register": "Register",
+  "user_registered_successfully": "User registered successfully! You can now log in.",
+  "error_registering_user": "Error registering user.",
+  "storage_permission_denied": "Storage permission denied.",
+  "storage_permission_denied_message": "Please grant storage permission to download files."
 }

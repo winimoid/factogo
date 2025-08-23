@@ -4,10 +4,10 @@ import { View, StyleSheet, Image } from 'react-native';
 import { TextInput, Button, Text, useTheme, Card, Title, Snackbar, ActivityIndicator } from 'react-native-paper';
 import { LanguageContext } from '../../contexts/LanguageContext';
 import { AuthContext } from '../../contexts/AuthContext';
-import { addUser, getUser } from '../../services/Database';
+import { addUser } from '../../services/Database';
 import { typography } from '../../styles/typography';
 
-const LoginScreen = ({ navigation }) => {
+const RegisterScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
@@ -16,18 +16,19 @@ const LoginScreen = ({ navigation }) => {
 
   const { t } = useContext(LanguageContext);
   const { colors } = useTheme();
-  const { setIsAuthenticated } = useContext(AuthContext);
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     setLoading(true);
     try {
-      const user = await getUser(username);
-      if (user && user.password === password) {
-        setIsAuthenticated(true);
-      } else {
-          setSnackbarMessage(t('invalid_credentials'));
-          setSnackbarVisible(true);
-      }
+      await addUser(username, password);
+      setSnackbarMessage(t('user_registered_successfully'));
+      setSnackbarVisible(true);
+      setTimeout(() => {
+        navigation.navigate('Login');
+      }, 2000);
+    } catch (error) {
+      setSnackbarMessage(t('error_registering_user'));
+      setSnackbarVisible(true);
     } finally {
       setLoading(false);
     }
@@ -36,8 +37,7 @@ const LoginScreen = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Image source={require('../../assets/images/logo.png')} style={styles.logo} />
-      <Title style={styles.appTitle}>{t('app_title')}</Title>
-      <Text style={styles.slogan}>{t('app_slogan')}</Text>
+      <Title style={styles.appTitle}>{t('register')}</Title>
 
       <Card style={styles.card} elevation={4}>
         <Card.Content>
@@ -62,11 +62,8 @@ const LoginScreen = ({ navigation }) => {
             inputStyle={typography.body}
             left={<TextInput.Icon icon="lock-outline" />}
           />
-          <Button mode="contained" onPress={handleLogin} style={styles.button} labelStyle={typography.button} icon="login" disabled={loading}>
-            {loading ? <ActivityIndicator color={colors.onPrimary} /> : t('login')}
-          </Button>
-          <Button mode="text" onPress={() => navigation.navigate('Register')} style={styles.button} labelStyle={typography.button}>
-            {t('register')}
+          <Button mode="contained" onPress={handleRegister} style={styles.button} labelStyle={typography.button} icon="account-plus" disabled={loading}>
+            {loading ? <ActivityIndicator color={colors.onPrimary} /> : t('register')}
           </Button>
         </Card.Content>
       </Card>
@@ -125,4 +122,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;
+export default RegisterScreen;

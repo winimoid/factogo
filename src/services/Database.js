@@ -144,7 +144,7 @@ export const addInvoice = async (invoice) => {
 
 export const getInvoices = async () => {
   const db = await openDatabase();
-  const query = 'SELECT * FROM invoices';
+  const query = 'SELECT * FROM invoices ORDER BY id DESC';
   try {
     const [results] = await db.executeSql(query);
     return results.rows.raw();
@@ -190,7 +190,7 @@ export const addQuote = async (quote) => {
 
 export const getQuotes = async () => {
   const db = await openDatabase();
-  const query = 'SELECT * FROM quotes';
+  const query = 'SELECT * FROM quotes ORDER BY id DESC';
   try {
     const [results] = await db.executeSql(query);
     return results.rows.raw();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
-import { TextInput, Button, Text, useTheme, IconButton, Card, Title, ActivityIndicator } from 'react-native-paper';
+import { View, StyleSheet, FlatList, PermissionsAndroid, Platform } from 'react-native';
+import { TextInput, Button, Text, useTheme, IconButton, Card, Title, ActivityIndicator, Portal, Dialog, Paragraph } from 'react-native-paper';
 import { DatePickerModal } from 'react-native-paper-dates';
 import { LanguageContext } from '../contexts/LanguageContext';
 import { getSettings } from '../services/Database';
@@ -10,6 +10,29 @@ import fs from 'react-native-fs';
 import { toWords } from '../utils/numberToWords';
 import { typography } from '../styles/typography';
 
+const requestStoragePermission = async () => {
+  if (Platform.OS === 'android') {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission',
+          message: 'This app needs access to your storage to download PDFs.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  } else {
+    return true;
+  }
+};
+
 const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
   const [clientName, setClientName] = useState('');
   const [date, setDate] = useState(new Date());
@@ -17,6 +40,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
   const [total, setTotal] = useState(0);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
+  const [permissionDialogVisible, setPermissionDialogVisible] = useState(false);
   const { t, locale } = useContext(LanguageContext);
   const { colors } = useTheme();
   const { document } = route.params || {};
@@ -95,6 +119,8 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
     const logoBase64 = await getBase64Image(settings?.logo);
     const signatureBase64 = await getBase64Image(settings?.signature);
     const stampBase64 = await getBase64Image(settings?.stamp);
+
+    const formattedDate = `Libreville, ${date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}`;
 
     // A4 dimensions in pixels at 96 DPI are roughly 794x1123.
     // We define a fixed height for header and footer to calculate body height.
@@ -287,7 +313,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
                 <div class="document-details">
                   <div>
                     <div class="document-title">${documentType === 'invoice' ? t('invoice') : t('quote')} N° ${document?.id || ''}</div>
-                    <div>Date: ${date.toLocaleDateString('fr-FR')}</div>
+                    <div>${formattedDate}</div>
                   </div>
                   <div class="client-info">
                     <span class="text-bold">Client:</span><br/>
@@ -422,6 +448,24 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
     }
   };
 
+  const handleDownload = async () => {
+    const hasPermission = await requestStoragePermission();
+    if (!hasPermission) {
+      setPermissionDialogVisible(true);
+      return;
+    }
+    handlePdfAction('download');
+  };
+
+  const handleShare = async () => {
+    const hasPermission = await requestStoragePermission();
+    if (!hasPermission) {
+      setPermissionDialogVisible(true);
+      return;
+    }
+    handlePdfAction('share');
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       
@@ -521,10 +565,10 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
             <Button mode="outlined" onPress={() => handlePdfAction('preview')} style={styles.button} icon="file-pdf-box" disabled={loadingPdf} labelStyle={typography.button}>
               {loadingPdf ? <ActivityIndicator color={colors.primary} /> : t('preview_pdf')}
             </Button>
-            <Button mode="outlined" onPress={() => handlePdfAction('download')} style={styles.button} icon="download" disabled={loadingPdf} labelStyle={typography.button}>
+            <Button mode="outlined" onPress={handleDownload} style={styles.button} icon="download" disabled={loadingPdf} labelStyle={typography.button}>
               {loadingPdf ? <ActivityIndicator color={colors.primary} /> : t('download')}
             </Button>
-            <Button mode="outlined" onPress={() => handlePdfAction('share')} style={styles.button} icon="share-variant" disabled={loadingPdf} labelStyle={typography.button}>
+            <Button mode="outlined" onPress={handleShare} style={styles.button} icon="share-variant" disabled={loadingPdf} labelStyle={typography.button}>
               {loadingPdf ? <ActivityIndicator color={colors.primary} /> : t('share')}
             </Button>
           </View>
@@ -545,6 +589,18 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
           }
         }}
       />
+
+      <Portal>
+        <Dialog visible={permissionDialogVisible} onDismiss={() => setPermissionDialogVisible(false)} style={{ borderRadius: 8}}>
+          <Dialog.Title>{t('storage_permission_denied')}</Dialog.Title>
+          <Dialog.Content>
+            <Paragraph>{t('storage_permission_denied_message')}</Paragraph>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setPermissionDialogVisible(false)}>{t('dismiss')}</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 };

@@ -24,8 +24,10 @@ DerivedData
 
 # Gemini
 *.env
+.env
 *.env.local
 *GEMINI.md
+GEMINI.md
 
 # Android/IntelliJ
 #

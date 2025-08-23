@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
-import { View, FlatList, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, FlatList, StyleSheet, useWindowDimensions, PermissionsAndroid, Platform } from 'react-native';
 import { Text, Card, Title, Paragraph, Button, useTheme, IconButton, List, Dialog, Portal, Provider, ActivityIndicator, TextInput, SegmentedButtons } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { TabView, TabBar } from 'react-native-tab-view';
@@ -40,6 +40,9 @@ const generatePdfHtml = async (item, type, settings, t, locale) => {
   const signatureBase64 = await getBase64Image(settings?.signature);
   const stampBase64 = await getBase64Image(settings?.stamp);
 
+  const date = new Date(item.date);
+  const formattedDate = `Libreville, ${date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}`;
+
   return `
     <html>
       <head>
@@ -71,7 +74,7 @@ const generatePdfHtml = async (item, type, settings, t, locale) => {
         </div>
         <div class="document-details">
           <p>${t(type)} #: ${item?.id || ''}</p>
-          <p>${t('date')}: ${item.date}</p>
+          <p>${t('date')}: ${formattedDate}</p>
           <p>${t('client_name')}: ${item.clientName}</p>
         </div>
         <table class="items-table">
@@ -107,10 +110,34 @@ const generatePdfHtml = async (item, type, settings, t, locale) => {
   `;
 };
 
+const requestStoragePermission = async () => {
+  if (Platform.OS === 'android') {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission',
+          message: 'This app needs access to your storage to download PDFs.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  } else {
+    return true;
+  }
+};
+
 const HomeScreen = ({ navigation }) => {
   const [invoices, setInvoices] = useState([]);
   const [quotes, setQuotes] = useState([]);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [permissionDialogVisible, setPermissionDialogVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [itemTypeToDelete, setItemTypeToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -195,6 +222,12 @@ const HomeScreen = ({ navigation }) => {
   const filteredAndSortedQuotes = filterAndSortDocuments(quotes);
 
   const handleDownloadPdf = async (item, type) => {
+    const hasPermission = await requestStoragePermission();
+    if (!hasPermission) {
+      setPermissionDialogVisible(true);
+      return;
+    }
+
     const settings = await getSettings();
     if (!settings) {
       alert('Please save your company settings (logo, signature, stamp) in the Settings screen before generating a PDF.');
@@ -219,6 +252,12 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleSharePdf = async (item, type) => {
+    const hasPermission = await requestStoragePermission();
+    if (!hasPermission) {
+      setPermissionDialogVisible(true);
+      return;
+    }
+
     const settings = await getSettings();
     if (!settings) {
       alert(t('settings_not_saved_pdf_alert'));
@@ -407,6 +446,16 @@ ${t('total')}: ${item.total.toFixed(2)}`}
           <Dialog.Actions>
             <Button onPress={hideDeleteDialog}>{t('cancel')}</Button>
             <Button onPress={confirmDelete}>{t('delete')}</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={permissionDialogVisible} onDismiss={() => setPermissionDialogVisible(false)} style={{ borderRadius: 8}}>
+          <Dialog.Title>{t('storage_permission_denied')}</Dialog.Title>
+          <Dialog.Content>
+            <Paragraph>{t('storage_permission_denied_message')}</Paragraph>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setPermissionDialogVisible(false)}>{t('dismiss')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>

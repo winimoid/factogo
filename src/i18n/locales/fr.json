@@ -69,7 +69,7 @@
   "change_signature": "Changer la signature",
   "select_signature": "Sélectionner la signature",
   "change_stamp": "Changer le cachet",
-  "select_stamp": "Sélectionner le cachet",
+  "select_stamp": "Sélectionter le cachet",
   "app_preferences": "Préférences de l'application",
   "settings_saved_successfully": "Paramètres enregistrés avec succès !",
   "error_copying_image": "Erreur lors de la copie de l'image",
@@ -88,5 +88,10 @@
   "date_oldest": "Date (Du plus ancien au plus récent)",
   "description": "Description",
   "informations": "Informations",
-  "locale_code": "fr"
+  "locale_code": "fr",
+  "register": "S'inscrire",
+  "user_registered_successfully": "Utilisateur enregistré avec succès ! Vous pouvez maintenant vous connecter.",
+  "error_registering_user": "Erreur lors de l'enregistrement de l'utilisateur.",
+  "storage_permission_denied": "Permission de stockage refusée.",
+  "storage_permission_denied_message": "Veuillez accorder la permission de stockage pour télécharger des fichiers."
 }
