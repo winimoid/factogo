@@ -22,6 +22,11 @@ DerivedData
 *.xcuserstate
 **/.xcode.env.local
 
+# Gemini
+*.env
+*.env.local
+*GEMINI.md
+
 # Android/IntelliJ
 #
 build/
