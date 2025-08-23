@@ -62,8 +62,9 @@ const AppTheme = {
   roundness: 20,
   colors: {
     ...MD3LightTheme.colors,
-    primary: '#6200ee',
-    secondary: '#03dac4',
+    primary: '#b01c2e',
+    secondary: '#008CBA',
+    onPrimary: '#ffffff',
   },
 };
 
@@ -73,8 +74,9 @@ const AppDarkTheme = {
   roundness: 20,
   colors: {
     ...MD3DarkTheme.colors,
-    primary: '#bb86fc',
-    secondary: '#03dac6',
+    primary: '#b43745ff',
+    secondary: '#008CBA',
+    onPrimary: '#ffffff',
   },
 };
 

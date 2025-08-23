@@ -87,5 +87,6 @@
   "date_newest": "Date (Newest first)",
   "date_oldest": "Date (Oldest first)",
   "description": "Description",
-  "informations": "Informations"
+  "informations": "Informations",
+  "locale_code": "en"
 }

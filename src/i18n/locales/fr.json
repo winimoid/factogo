@@ -87,5 +87,6 @@
   "date_newest": "Date (Du plus récent au plus ancien)",
   "date_oldest": "Date (Du plus ancien au plus récent)",
   "description": "Description",
-  "informations": "Informations"
+  "informations": "Informations",
+  "locale_code": "fr"
 }

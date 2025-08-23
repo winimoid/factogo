@@ -39,7 +39,7 @@ const MainTabs = () => {
 
           return <Icon name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: isDarkMode ? '#bb86fc' : '#6200ee',
+        tabBarActiveTintColor: isDarkMode ? '#b43745ff' : '#b01c2e',
         tabBarInactiveTintColor: 'gray',
         tabBarStyle: {
           backgroundColor: isDarkMode ? '#121212' : '#ffffff',

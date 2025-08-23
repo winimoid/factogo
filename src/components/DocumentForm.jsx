@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
-import { TextInput, Button, Text, useTheme, IconButton, Card, Title, Divider, ActivityIndicator } from 'react-native-paper';
+import { TextInput, Button, Text, useTheme, IconButton, Card, Title, ActivityIndicator } from 'react-native-paper';
 import { DatePickerModal } from 'react-native-paper-dates';
 import { LanguageContext } from '../contexts/LanguageContext';
 import { getSettings } from '../services/Database';
@@ -42,14 +42,14 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
     }
   }, [document]);
 
-  useEffect(() => {
-    calculateTotal();
-  }, [items]);
-
-  const calculateTotal = () => {
+  const calculateTotal = useCallback(() => {
     const newTotal = items.reduce((acc, item) => acc + item.quantity * item.price, 0);
     setTotal(newTotal);
-  };
+  }, [items]);
+
+  useEffect(() => {
+    calculateTotal();
+  }, [calculateTotal]);
 
   const handleAddItem = () => {
     setItems([...items, { description: '', quantity: 1, price: 0 }]);
@@ -133,7 +133,16 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
           }
           #page-header-content {
             padding: 20px 40px;
-            border-bottom: 2px solid #000;
+            border-bottom: 8px solid #000;
+            position: relative;
+          }
+          #page-header-content::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            right: 0;
+            border-bottom: 4px solid #b01c2e;
           }
           .header-flex {
             display: flex;
@@ -157,9 +166,18 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
           }
           #page-footer-content {
             padding: 20px 40px;
-            border-top: 2px solid #000;
+            border-top: 8px solid #000;
             text-align: center;
             font-size: 10px;
+            position: relative;
+          }
+          #page-footer-content::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 0;
+            right: 0;
+            border-top: 4px solid #b01c2e;
           }
 
           /* BODY STYLES */
@@ -168,6 +186,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
           }
           #main-content {
             padding: 20px 40px;
+            vertical-align: top; /* This is the fix for vertical centering */
           }
           .document-details {
             display: flex;
@@ -353,7 +372,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
     try {
       const settings = await getSettings();
       if (!settings) {
-        alert(t('settings_not_saved_pdf_alert'));
+        // alert(t('settings_not_saved_pdf_alert'));
         return;
       }
 
@@ -375,14 +394,14 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
       console.log('RNHTMLtoPDF conversion result:', file);
       if (!file || !file.filePath) {
         console.error(t('pdf_file_path_null_error'), file);
-        alert(t('failed_generate_pdf_settings_alert'));
+        // alert(t('failed_generate_pdf_settings_alert'));
         return;
       }
 
       if (action === 'download') {
         const destPath = `${fs.DownloadDirectoryPath}/${fileName}.pdf`;
         await fs.moveFile(file.filePath, destPath);
-        alert(`${documentType === 'invoice' ? t('invoice') : t('quote')} downloaded to ${destPath}`);
+        // alert(`${documentType === 'invoice' ? t('invoice') : t('quote')} downloaded to ${destPath}`);
       } else if (action === 'share') {
         const cachePath = `${fs.CachesDirectoryPath}/${fileName}.pdf`;
         await fs.copyFile(file.filePath, cachePath);
@@ -397,14 +416,14 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
       }
     } catch (error) {
       console.error(`Failed to ${action} PDF`, error);
-      alert(`Failed to ${action} PDF.`);
+      // alert(`Failed to ${action} PDF.`);
     } finally {
       setLoadingPdf(false);
     }
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       
       <FlatList
         data={items}
@@ -423,7 +442,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
             <TextInput
               label={t('quantity')}
               value={item.quantity.toString()}
-              onChangeText={(value) => handleItemChange(index, 'quantity', parseInt(value) || 0)}
+              onChangeText={(value) => handleItemChange(index, 'quantity', parseInt(value, 10) || 0)}
               keyboardType="numeric"
               style={[styles.itemInput, { backgroundColor: colors.background }]}
               mode="outlined"
@@ -514,14 +533,16 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
       />
 
       <DatePickerModal
-        locale={t('locale_code')} // e.g., 'en' or 'fr'
+        locale={locale} // e.g., 'en' or 'fr'
         mode="single"
         visible={isDatePickerVisible}
         onDismiss={() => setIsDatePickerVisible(false)}
         date={date}
-        onConfirm={({ date }) => {
+        onConfirm={({ date: newDate }) => {
           setIsDatePickerVisible(false);
-          setDate(date);
+          if (newDate) {
+            setDate(newDate);
+          }
         }}
       />
     </View>
