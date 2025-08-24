@@ -41,6 +41,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
   const [permissionDialogVisible, setPermissionDialogVisible] = useState(false);
+  const [settingsDialogVisible, setSettingsDialogVisible] = useState(false);
   const { t, locale } = useContext(LanguageContext);
   const { colors } = useTheme();
   const { document } = route.params || {};
@@ -116,14 +117,32 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
       }
     };
 
+    const loadFontAsBase64 = async (fontName) => {
+      try {
+        const fontPath = Platform.OS === 'android' ? `fonts/${fontName}.ttf` : `${fs.MainBundlePath}/fonts/${fontName}.ttf`;
+        const fontData = await fs.readFileAssets(fontPath, 'base64');
+        return fontData;
+      } catch (error) {
+        console.error(`Error loading font ${fontName}:`, error);
+        return null;
+      }
+    };
+
+    const outfitRegularBase64 = await loadFontAsBase64('Outfit-Regular');
+    const outfitBoldBase64 = await loadFontAsBase64('Outfit-Bold');
+
     const logoBase64 = await getBase64Image(settings?.logo);
     const signatureBase64 = await getBase64Image(settings?.signature);
     const stampBase64 = await getBase64Image(settings?.stamp);
 
-    const formattedDate = `Libreville, ${date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}`;
+    const formattedDate = `${t('pdf_location_prefix')}${date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}`;
+    const stoppedAtPrefix = documentType === 'invoice' ? t('pdf_stopped_at_prefix_invoice') : t('pdf_stopped_at_prefix_quote');
 
-    // A4 dimensions in pixels at 96 DPI are roughly 794x1123.
-    // We define a fixed height for header and footer to calculate body height.
+    const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0');
+    const currentYear = new Date().getFullYear();
+    const documentIdPadded = String(document?.id || '0').padStart(3, '0');
+    const formattedDocumentNumber = `${documentIdPadded}/${currentMonth}/${currentYear}`;
+
     const headerHeight = 150; // px
     const footerHeight = 100; // px
 
@@ -131,6 +150,18 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
     <html>
       <head>
         <style>
+          @font-face {
+            font-family: 'Outfit';
+            src: url(data:font/truetype;base64,${outfitRegularBase64}) format('truetype');
+            font-weight: normal;
+            font-style: normal;
+          }
+          @font-face {
+            font-family: 'Outfit';
+            src: url(data:font/truetype;base64,${outfitBoldBase64}) format('truetype');
+            font-weight: bold;
+            font-style: normal;
+          }
           @page {
             size: A4;
             margin: 0;
@@ -139,7 +170,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
             margin: 0;
             padding: 0;
             font-family: 'Outfit', Arial, sans-serif;
-            font-size: 12px; /* Adjusted for better fit on A4 */
+            font-size: 12px;
             color: #333;
             width: 210mm;
           }
@@ -194,7 +225,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
             padding: 20px 40px;
             border-top: 8px solid #000;
             text-align: center;
-            font-size: 10px;
+            font-size: 12px;
             position: relative;
           }
           #page-footer-content::before {
@@ -212,7 +243,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
           }
           #main-content {
             padding: 20px 40px;
-            vertical-align: top; /* This is the fix for vertical centering */
+            vertical-align: top;
           }
           .document-details {
             display: flex;
@@ -229,6 +260,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
             border: 1px solid #ccc;
             padding: 15px;
             min-width: 250px;
+            text-align: center;
           }
           .items-table {
             width: 100%;
@@ -279,7 +311,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
             max-height: 60px;
             margin-left: 20px;
           }
-          .text-bold {
+          .text-bold, b, strong {
             font-weight: bold;
           }
 
@@ -312,23 +344,23 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
               <td id="main-content">
                 <div class="document-details">
                   <div>
-                    <div class="document-title">${documentType === 'invoice' ? t('invoice') : t('quote')} N° ${document?.id || ''}</div>
+                    <div class="document-title">${documentType === 'invoice' ? t('invoice') : t('quote')} N° ${formattedDocumentNumber}</div>
                     <div>${formattedDate}</div>
                   </div>
                   <div class="client-info">
-                    <span class="text-bold">Client:</span><br/>
+                    <span class="text-bold">${t('pdf_client_label')}</span><br/>
                     ${clientName}<br/>
-                    - Libreville -
+                    ${t('pdf_client_location')}
                   </div>
                 </div>
 
                 <table class="items-table">
                   <thead>
                     <tr>
-                      <th>Désignation</th>
-                      <th class="text-center">Qté</th>
-                      <th class="text-right">P.U. HT</th>
-                      <th class="text-right">Montant</th>
+                      <th>${t('pdf_th_designation')}</th>
+                      <th class="text-center">${t('pdf_th_quantity')}</th>
+                      <th class="text-right">${t('pdf_th_unit_price')}</th>
+                      <th class="text-right">${t('pdf_th_amount')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -336,8 +368,8 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
                       <tr>
                         <td>${i.description}</td>
                         <td class="text-center">${i.quantity}</td>
-                        <td class="text-right">${i.price.toLocaleString('fr-FR')}</td>
-                        <td class="text-right">${(i.quantity * i.price).toLocaleString('fr-FR')}</td>
+                        <td class="text-right">${i.price.toLocaleString(t('pdf_locale'))}</td>
+                        <td class="text-right">${(i.quantity * i.price).toLocaleString(t('pdf_locale'))}</td>
                       </tr>
                     `).join('')}
                   </tbody>
@@ -347,24 +379,24 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
                   <table class="totals-table">
                     <tbody>
                       <tr>
-                        <td class="label">Total HT</td>
-                        <td class="text-right">${total.toLocaleString('fr-FR')} FCFA</td>
+                        <td class="label">${t('pdf_total_ht')}</td>
+                        <td class="text-right"><b>${total.toLocaleString(t('pdf_locale'))} ${t('pdf_currency')}</b></td>
                       </tr>
                       <!-- Add other rows for VAT, etc. if needed -->
-                      <tr>
-                        <td class="label">Total TTC</td>
-                        <td class="text-right">${total.toLocaleString('fr-FR')} FCFA</td>
-                      </tr>
+                      <!-- <tr>
+                        <td class="label">${t('pdf_total_ttc')}</td>
+                        <td class="text-right"><b>${total.toLocaleString(t('pdf_locale'))} ${t('pdf_currency')}</b></td>
+                      </tr> -->
                     </tbody>
                   </table>
                 </div>
 
                 <div class="total-in-words">
-                  Arrêté le présent ${documentType === 'invoice' ? 'facture' : 'devis'} à la somme de : <span class="text-bold">${totalInWords}</span>.
+                  ${stoppedAtPrefix} <span class="text-bold">${totalInWords}</span>.
                 </div>
 
                 <div class="signature-section">
-                  <span class="text-bold">Le Gérant</span>
+                  <span class="text-bold">${t('pdf_manager_label')}</span>
                   <div class="signature-images">
                     ${signatureBase64 ? `<img src="${signatureBase64}" />` : ''}
                     ${stampBase64 ? `<img src="${stampBase64}" />` : ''}
@@ -397,8 +429,9 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
     setLoadingPdf(true);
     try {
       const settings = await getSettings();
-      if (!settings) {
-        // alert(t('settings_not_saved_pdf_alert'));
+      if (!settings || !settings.companyName) {
+        setSettingsDialogVisible(true);
+        setLoadingPdf(false);
         return;
       }
 
@@ -408,30 +441,26 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
         html: htmlContent,
         fileName,
         directory: 'Documents',
-        fonts: [
-          'fonts/Outfit-Regular.ttf',
-          'fonts/Outfit-Bold.ttf',
-          'fonts/Outfit-Light.ttf',
-        ],
         pageSize: 'A4',
       };
 
       const file = await RNHTMLtoPDF.convert(options);
-      console.log('RNHTMLtoPDF conversion result:', file);
       if (!file || !file.filePath) {
         console.error(t('pdf_file_path_null_error'), file);
-        // alert(t('failed_generate_pdf_settings_alert'));
+        // You can replace this with a dialog as well if you want
+        alert(t('failed_generate_pdf_settings_alert'));
+        setLoadingPdf(false);
         return;
       }
 
       if (action === 'download') {
         const destPath = `${fs.DownloadDirectoryPath}/${fileName}.pdf`;
         await fs.moveFile(file.filePath, destPath);
-        // alert(`${documentType === 'invoice' ? t('invoice') : t('quote')} downloaded to ${destPath}`);
+        // You can replace this with a dialog as well if you want
+        alert(`${documentType === 'invoice' ? t('invoice') : t('quote')} ${t('downloaded_to')} ${destPath}`);
       } else if (action === 'share') {
         const cachePath = `${fs.CachesDirectoryPath}/${fileName}.pdf`;
         await fs.copyFile(file.filePath, cachePath);
-        console.log('Sharing PDF from cache path:', cachePath);
         await Share.open({
           title: `Share ${documentType === 'invoice' ? t('invoice') : t('quote')}`,
           url: `file://${cachePath}`,
@@ -442,7 +471,8 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
       }
     } catch (error) {
       console.error(`Failed to ${action} PDF`, error);
-      // alert(`Failed to ${action} PDF.`);
+      // You can replace this with a dialog as well if you want
+      alert(`${t('failed_to')} ${action} PDF.`);
     } finally {
       setLoadingPdf(false);
     }
@@ -554,7 +584,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
           <View style={styles.contentPadding}>
             <Card style={styles.card} elevation={4}>
               <Card.Content>
-                <Text style={styles.total}>{t('total')}: {total.toFixed(2)}</Text>
+                <Text style={styles.total}>{t('total')}: {total.toFixed(2)} {t('pdf_currency')}</Text>
               </Card.Content>
             </Card>
 
@@ -598,6 +628,17 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setPermissionDialogVisible(false)}>{t('dismiss')}</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={settingsDialogVisible} onDismiss={() => setSettingsDialogVisible(false)} style={{ borderRadius: 8}}>
+          <Dialog.Title>{t('settings_not_saved_pdf_alert_title')}</Dialog.Title>
+          <Dialog.Content>
+            <Paragraph>{t('settings_not_saved_pdf_alert_message')}</Paragraph>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setSettingsDialogVisible(false)}>{t('cancel')}</Button>
+            <Button onPress={() => { setSettingsDialogVisible(false); navigation.navigate('MainTabs', { screen: 'Settings' }); }}>{t('go_to_settings')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>

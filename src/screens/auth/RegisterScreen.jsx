@@ -18,6 +18,11 @@ const RegisterScreen = ({ navigation }) => {
   const { colors } = useTheme();
 
   const handleRegister = async () => {
+    if (!username || !password) {
+      setSnackbarMessage(t('fill_all_fields'));
+      setSnackbarVisible(true);
+      return;
+    }
     setLoading(true);
     try {
       await addUser(username, password);
@@ -37,7 +42,8 @@ const RegisterScreen = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Image source={require('../../assets/images/logo.png')} style={styles.logo} />
-      <Title style={styles.appTitle}>{t('register')}</Title>
+      <Title style={styles.appTitle}>{t('app_title')}</Title>
+      <Text style={styles.slogan}>{t('app_slogan')}</Text>
 
       <Card style={styles.card} elevation={4}>
         <Card.Content>
