@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
-import { View, StyleSheet, FlatList, PermissionsAndroid, Platform } from 'react-native';
+import { View, StyleSheet, FlatList, Platform } from 'react-native';
 import { TextInput, Button, Text, useTheme, IconButton, Card, Title, ActivityIndicator, Portal, Dialog, Paragraph } from 'react-native-paper';
 import { DatePickerModal } from 'react-native-paper-dates';
 import { LanguageContext } from '../contexts/LanguageContext';
@@ -10,28 +10,6 @@ import fs from 'react-native-fs';
 import { toWords } from '../utils/numberToWords';
 import { typography } from '../styles/typography';
 
-const requestStoragePermission = async () => {
-  if (Platform.OS === 'android') {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-        {
-          title: 'Storage Permission',
-          message: 'This app needs access to your storage to download PDFs.',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        },
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (err) {
-      console.warn(err);
-      return false;
-    }
-  } else {
-    return true;
-  }
-};
 
 const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
   const [clientName, setClientName] = useState('');

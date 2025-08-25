@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
-import { View, FlatList, StyleSheet, useWindowDimensions, PermissionsAndroid, Platform } from 'react-native';
+import { View, FlatList, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { Text, Card, Title, Paragraph, Button, useTheme, IconButton, List, Dialog, Portal, Provider, ActivityIndicator, TextInput, SegmentedButtons } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { TabView, TabBar } from 'react-native-tab-view';
