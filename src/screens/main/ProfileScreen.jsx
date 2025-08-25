@@ -1,7 +1,7 @@
 
 import React, { useContext } from 'react';
-import { View, StyleSheet, ScrollView, Linking } from 'react-native';
-import { Button, useTheme, Text, Card, Title, Paragraph, Divider } from 'react-native-paper';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Button, useTheme, Text, Card, Title, Paragraph } from 'react-native-paper';
 import { LanguageContext } from '../../contexts/LanguageContext';
 import { AuthContext } from '../../contexts/AuthContext';
 import { typography } from '../../styles/typography';
@@ -9,16 +9,14 @@ import { typography } from '../../styles/typography';
 const ProfileScreen = () => {
   const { t } = useContext(LanguageContext);
   const { colors } = useTheme();
-  const { user, logout } = useContext(AuthContext);
+  const { setIsAuthenticated } = useContext(AuthContext);
 
-  const appVersion = '1.0.0'; // Hardcoded for now
+  const appVersion = '1.0.0'; // Hardcoded for now, consider using react-native-version-info
+  const loggedInUsername = 'user'; // For simplicity, assuming 'user' is logged in
 
   const handleLogout = () => {
-    logout();
-  };
-
-  const openURL = (url) => {
-    Linking.openURL(url).catch(err => console.error("Couldn't load page", err));
+    // In a real app, you would clear the user's session here
+    setIsAuthenticated(false);
   };
 
   return (
@@ -29,33 +27,15 @@ const ProfileScreen = () => {
         <Card style={styles.card}>
           <Card.Content>
             <Title style={styles.cardTitle}>{t('user_information')}</Title>
-            <Paragraph style={styles.paragraph}>{t('username_label')} {user?.username}</Paragraph>
+            <Paragraph style={styles.paragraph}>{t('username_label')} {loggedInUsername}</Paragraph>
           </Card.Content>
         </Card>
 
         <Card style={styles.card}>
           <Card.Content>
             <Title style={styles.cardTitle}>{t('app_information')}</Title>
-            <Paragraph style={styles.paragraph}>{t('app_name_label')} Facto-Go</Paragraph>
+            <Paragraph style={styles.paragraph}>{t('app_name_label')} FactoGo</Paragraph>
             <Paragraph style={styles.paragraph}>{t('version_label')} {appVersion}</Paragraph>
-          </Card.Content>
-        </Card>
-
-        <Card style={styles.card}>
-          <Card.Content>
-            <Title style={styles.cardTitle}>{t('about_developer')}</Title>
-            <Paragraph style={styles.paragraph}>{'Mhénsa Moïse WINIGAH'}</Paragraph>
-            <Paragraph style={styles.paragraph}>{'Email: moisewinigah@gmail.com'}</Paragraph>
-            <Paragraph style={styles.paragraph}>{'Tel: +228 98 38 99 34'}</Paragraph>
-            <Divider style={styles.divider} />
-            <Button 
-              icon="web"
-              mode="outlined" 
-              onPress={() => openURL('https://virtualayers.netlify.app')} 
-              style={styles.websiteButton}
-            >
-              {t('developer_website')}
-            </Button>
           </Card.Content>
         </Card>
 
@@ -92,19 +72,12 @@ const styles = StyleSheet.create({
   },
   paragraph: {
     ...typography.body,
-    marginBottom: 8,
-    fontSize: 16,
+    marginBottom: 5,
   },
   logoutButton: {
-    marginTop: 20,
+    marginTop: 30,
     width: '80%',
     paddingVertical: 10,
-  },
-  websiteButton: {
-    marginTop: 15,
-  },
-  divider: {
-    marginVertical: 10,
   },
 });
 

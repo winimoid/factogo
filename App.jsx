@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { LanguageProvider } from './src/contexts/LanguageContext';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { AuthProvider } from './src/contexts/AuthContext';
-import Main from './src/navigation/Main';
+import AppNavigator from './src/navigation/AppNavigator';
 import { openDatabase } from './src/services/Database';
 
 // Open the database when the app starts
@@ -14,7 +13,7 @@ const App = () => {
     <LanguageProvider>
       <ThemeProvider>
         <AuthProvider>
-          <Main />
+          <AppNavigator />
         </AuthProvider>
       </ThemeProvider>
     </LanguageProvider>

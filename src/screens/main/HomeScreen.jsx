@@ -110,7 +110,28 @@ const generatePdfHtml = async (item, type, settings, t, locale) => {
   `;
 };
 
-
+const requestStoragePermission = async () => {
+  if (Platform.OS === 'android') {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission',
+          message: 'This app needs access to your storage to download PDFs.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  } else {
+    return true;
+  }
+};
 
 const HomeScreen = ({ navigation }) => {
   const [invoices, setInvoices] = useState([]);
@@ -119,7 +140,6 @@ const HomeScreen = ({ navigation }) => {
   const [permissionDialogVisible, setPermissionDialogVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [itemTypeToDelete, setItemTypeToDelete] = useState(null);
-  const [settingsDialogVisible, setSettingsDialogVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('date_newest'); // 'date_newest' or 'date_oldest'
@@ -149,14 +169,7 @@ const HomeScreen = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       loadData();
-      const checkSettings = async () => {
-        const settings = await getSettings();
-        if (!settings || !settings.companyName) {
-          navigation.navigate('Settings');
-        }
-      };
-      checkSettings();
-    }, [loadData, navigation])
+    }, [loadData])
   );
 
   const showDeleteDialog = (item, type) => {
@@ -216,11 +229,11 @@ const HomeScreen = ({ navigation }) => {
     }
 
     const settings = await getSettings();
-    if (!settings || !settings.companyName) {
-      setSettingsDialogVisible(true);
+    if (!settings) {
+      alert('Please save your company settings (logo, signature, stamp) in the Settings screen before generating a PDF.');
       return;
     }
-    const html = await generatePdfHtml(item, type, settings, t, locale);
+    const html = await generatePdfHtml(item, type, settings, t);
     const options = {
       html,
       fileName: `${type === 'invoice' ? 'Invoice' : 'Quote'}_${item.id}`,
@@ -231,11 +244,9 @@ const HomeScreen = ({ navigation }) => {
       const file = await RNHTMLtoPDF.convert(options);
       const destPath = `${fs.DownloadDirectoryPath}/${type === 'invoice' ? 'Invoice' : 'Quote'}_${item.id}.pdf`;
       await fs.moveFile(file.filePath, destPath);
-      // You can replace this with a dialog as well if you want
       alert(`${type === 'invoice' ? t('invoice_downloaded') : t('quote_downloaded')} ${destPath}`);
     } catch (error) {
       console.error('Failed to download PDF', error);
-      // You can replace this with a dialog as well if you want
       alert(t('failed_download_pdf'));
     }
   };
@@ -248,11 +259,11 @@ const HomeScreen = ({ navigation }) => {
     }
 
     const settings = await getSettings();
-    if (!settings || !settings.companyName) {
-      setSettingsDialogVisible(true);
+    if (!settings) {
+      alert(t('settings_not_saved_pdf_alert'));
       return;
     }
-    const html = await generatePdfHtml(item, type, settings, t, locale);
+    const html = await generatePdfHtml(item, type, settings, t);
     const options = {
       html,
       fileName: `${type === 'invoice' ? 'Invoice' : 'Quote'}_${item.id}`,
@@ -263,7 +274,6 @@ const HomeScreen = ({ navigation }) => {
       const file = await RNHTMLtoPDF.convert(options);
       if (!file || !file.filePath) {
         console.error(t('pdf_file_path_null_error'), file);
-        // You can replace this with a dialog as well if you want
         alert(t('failed_generate_pdf_settings_alert'));
         return;
       }
@@ -271,13 +281,12 @@ const HomeScreen = ({ navigation }) => {
       await fs.copyFile(file.filePath, cachePath);
       
       await Share.open({
-        title: `Share ${type === 'invoice' ? t('invoice') : 'quote'}`,
+        title: `Share ${type === 'invoice' ? t('invoice') : t('quote')}`,
         url: `file://${cachePath}`,
         type: 'application/pdf',
       });
     } catch (error) {
       console.error('Failed to share PDF', error);
-      // You can replace this with a dialog as well if you want
       alert(t('failed_share_pdf'));
     }
   };
@@ -307,7 +316,7 @@ const HomeScreen = ({ navigation }) => {
       <List.Item
         title={item.clientName}
         description={`${t('date')}: ${item.date}
-${t('total')}: ${item.total.toFixed(2)} FCFA`}
+${t('total')}: ${item.total.toFixed(2)}`}
         left={props => <List.Icon {...props} icon={type === 'invoice' ? "file-document-outline" : "file-document-edit-outline"} />}
         titleStyle={styles.listItemTitle}
         descriptionStyle={styles.listItemDescription}
@@ -447,17 +456,6 @@ ${t('total')}: ${item.total.toFixed(2)} FCFA`}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setPermissionDialogVisible(false)}>{t('dismiss')}</Button>
-          </Dialog.Actions>
-        </Dialog>
-
-        <Dialog visible={settingsDialogVisible} onDismiss={() => setSettingsDialogVisible(false)} style={{ borderRadius: 8}}>
-          <Dialog.Title>{t('settings_not_saved_pdf_alert_title')}</Dialog.Title>
-          <Dialog.Content>
-            <Paragraph>{t('settings_not_saved_pdf_alert_message')}</Paragraph>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setSettingsDialogVisible(false)}>{t('cancel')}</Button>
-            <Button onPress={() => { setSettingsDialogVisible(false); navigation.navigate('Settings'); }}>{t('go_to_settings')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>

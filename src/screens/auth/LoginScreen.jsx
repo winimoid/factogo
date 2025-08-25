@@ -16,19 +16,14 @@ const LoginScreen = ({ navigation }) => {
 
   const { t } = useContext(LanguageContext);
   const { colors } = useTheme();
-  const { login } = useContext(AuthContext);
+  const { setIsAuthenticated } = useContext(AuthContext);
 
   const handleLogin = async () => {
-    if (!username || !password) {
-      setSnackbarMessage(t('fill_all_fields'));
-      setSnackbarVisible(true);
-      return;
-    }
     setLoading(true);
     try {
       const user = await getUser(username);
       if (user && user.password === password) {
-        login(user);
+        setIsAuthenticated(true);
       } else {
           setSnackbarMessage(t('invalid_credentials'));
           setSnackbarVisible(true);
