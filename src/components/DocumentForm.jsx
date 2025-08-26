@@ -7,8 +7,10 @@ import { getSettings } from '../services/Database';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import Share from 'react-native-share';
 import fs from 'react-native-fs';
+import DocumentPicker from '@react-native-documents/picker';
 import { toWords } from '../utils/numberToWords';
 import { typography } from '../styles/typography';
+import { requestAppPermissions } from '../helpers/PermissionHelper';
 
 
 const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
@@ -19,6 +21,8 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
   const [permissionDialogVisible, setPermissionDialogVisible] = useState(false);
+  const [downloadDialogVisible, setDownloadDialogVisible] = useState(false);
+  const [downloadPath, setDownloadPath] = useState('');
   const { t, locale } = useContext(LanguageContext);
   const { colors } = useTheme();
   const { document } = route.params || {};
@@ -403,9 +407,15 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
       }
 
       if (action === 'download') {
-        const destPath = `${fs.DownloadDirectoryPath}/${fileName}.pdf`;
+        // On Android, DocumentDirectoryPath is internal to the app, while DownloadDirectoryPath is public.
+        // The user requested to use DocumentDirectoryPath.
+        const downloadPath = Platform.OS === 'android' ? fs.DocumentDirectoryPath : fs.DownloadDirectoryPath;
+        const destPath = `${downloadPath}/${fileName}.pdf`;
+
         await fs.moveFile(file.filePath, destPath);
-        // alert(`${documentType === 'invoice' ? t('invoice') : t('quote')} downloaded to ${destPath}`);
+
+        setDownloadPath(destPath);
+        setDownloadDialogVisible(true);
       } else if (action === 'share') {
         const cachePath = `${fs.CachesDirectoryPath}/${fileName}.pdf`;
         await fs.copyFile(file.filePath, cachePath);
@@ -427,20 +437,16 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
   };
 
   const handleDownload = async () => {
-    const hasPermission = await requestStoragePermission();
-    if (!hasPermission) {
-      setPermissionDialogVisible(true);
-      return;
-    }
+    // const hasPermission = await requestAppPermissions();
+    // if (!hasPermission) {
+    //   setPermissionDialogVisible(true);
+    //   return;
+    // }
+    
     handlePdfAction('download');
   };
 
   const handleShare = async () => {
-    const hasPermission = await requestStoragePermission();
-    if (!hasPermission) {
-      setPermissionDialogVisible(true);
-      return;
-    }
     handlePdfAction('share');
   };
 
@@ -576,6 +582,18 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setPermissionDialogVisible(false)}>{t('dismiss')}</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      <Portal>
+        <Dialog visible={downloadDialogVisible} onDismiss={() => setDownloadDialogVisible(false)} style={{ borderRadius: 8}}>
+          <Dialog.Title>{t('download_complete')}</Dialog.Title>
+          <Dialog.Content>
+            <Paragraph>{t('download_message', { documentType: documentType === 'invoice' ? t('invoice') : t('quote'), path: downloadPath })}</Paragraph>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDownloadDialogVisible(false)}>{t('dismiss')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>

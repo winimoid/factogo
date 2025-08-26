@@ -93,5 +93,9 @@
   "user_registered_successfully": "Utilisateur enregistré avec succès ! Vous pouvez maintenant vous connecter.",
   "error_registering_user": "Erreur lors de l'enregistrement de l'utilisateur.",
   "storage_permission_denied": "Permission de stockage refusée.",
-  "storage_permission_denied_message": "Veuillez accorder la permission de stockage pour télécharger des fichiers."
+  "storage_permission_denied_message": "Veuillez accorder la permission de stockage pour télécharger des fichiers.",
+  "information": "Information",
+  "ok": "OK",
+  "download_complete": "Téléchargement terminé",
+  "download_message": "{{documentType}} téléchargé dans {{path}}"
 }

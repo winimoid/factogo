@@ -93,5 +93,9 @@
   "user_registered_successfully": "User registered successfully! You can now log in.",
   "error_registering_user": "Error registering user.",
   "storage_permission_denied": "Storage permission denied.",
-  "storage_permission_denied_message": "Please grant storage permission to download files."
+  "storage_permission_denied_message": "Please grant storage permission to download files.",
+  "information": "Information",
+  "ok": "OK",
+  "download_complete": "Download Complete",
+  "download_message": "{{documentType}} downloaded to {{path}}"
 }

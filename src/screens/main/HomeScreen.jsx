@@ -138,6 +138,8 @@ const HomeScreen = ({ navigation }) => {
   const [quotes, setQuotes] = useState([]);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [permissionDialogVisible, setPermissionDialogVisible] = useState(false);
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState('');
   const [itemToDelete, setItemToDelete] = useState(null);
   const [itemTypeToDelete, setItemTypeToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -184,6 +186,16 @@ const HomeScreen = ({ navigation }) => {
     setItemTypeToDelete(null);
   };
 
+  const showDialog = (message) => {
+    setDialogMessage(message);
+    setDialogVisible(true);
+  };
+
+  const hideDialog = () => {
+    setDialogVisible(false);
+    setDialogMessage('');
+  };
+
   const confirmDelete = async () => {
     if (itemToDelete && itemTypeToDelete) {
       if (itemTypeToDelete === 'invoice') {
@@ -222,15 +234,15 @@ const HomeScreen = ({ navigation }) => {
   const filteredAndSortedQuotes = filterAndSortDocuments(quotes);
 
   const handleDownloadPdf = async (item, type) => {
-    const hasPermission = await requestStoragePermission();
-    if (!hasPermission) {
-      setPermissionDialogVisible(true);
-      return;
-    }
+    // const hasPermission = await requestStoragePermission();
+    // if (!hasPermission) {
+    //   setPermissionDialogVisible(true);
+    //   return;
+    // }
 
     const settings = await getSettings();
     if (!settings) {
-      alert('Please save your company settings (logo, signature, stamp) in the Settings screen before generating a PDF.');
+      showDialog('Please save your company settings (logo, signature, stamp) in the Settings screen before generating a PDF.');
       return;
     }
     const html = await generatePdfHtml(item, type, settings, t);
@@ -242,25 +254,21 @@ const HomeScreen = ({ navigation }) => {
 
     try {
       const file = await RNHTMLtoPDF.convert(options);
-      const destPath = `${fs.DownloadDirectoryPath}/${type === 'invoice' ? 'Invoice' : 'Quote'}_${item.id}.pdf`;
+      const downloadPath = Platform.OS === 'android' ? fs.DocumentDirectoryPath : fs.DownloadDirectoryPath;
+      const destPath = `${downloadPath}/${type === 'invoice' ? 'Invoice' : 'Quote'}_${item.id}.pdf`;
       await fs.moveFile(file.filePath, destPath);
-      alert(`${type === 'invoice' ? t('invoice_downloaded') : t('quote_downloaded')} ${destPath}`);
+      showDialog(`${type === 'invoice' ? t('invoice_downloaded') : t('quote_downloaded')} ${destPath}`);
     } catch (error) {
       console.error('Failed to download PDF', error);
-      alert(t('failed_download_pdf'));
+      showDialog(t('failed_download_pdf'));
     }
   };
 
   const handleSharePdf = async (item, type) => {
-    const hasPermission = await requestStoragePermission();
-    if (!hasPermission) {
-      setPermissionDialogVisible(true);
-      return;
-    }
 
     const settings = await getSettings();
     if (!settings) {
-      alert(t('settings_not_saved_pdf_alert'));
+      showDialog(t('settings_not_saved_pdf_alert'));
       return;
     }
     const html = await generatePdfHtml(item, type, settings, t);
@@ -274,7 +282,7 @@ const HomeScreen = ({ navigation }) => {
       const file = await RNHTMLtoPDF.convert(options);
       if (!file || !file.filePath) {
         console.error(t('pdf_file_path_null_error'), file);
-        alert(t('failed_generate_pdf_settings_alert'));
+        showDialog(t('failed_generate_pdf_settings_alert'));
         return;
       }
       const cachePath = `${fs.CachesDirectoryPath}/${options.fileName}.pdf`;
@@ -287,7 +295,7 @@ const HomeScreen = ({ navigation }) => {
       });
     } catch (error) {
       console.error('Failed to share PDF', error);
-      alert(t('failed_share_pdf'));
+      showDialog(t('failed_share_pdf'));
     }
   };
 
@@ -456,6 +464,16 @@ ${t('total')}: ${item.total.toFixed(2)}`}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setPermissionDialogVisible(false)}>{t('dismiss')}</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={dialogVisible} onDismiss={hideDialog} style={{ borderRadius: 8}}>
+          <Dialog.Title>{t('information')}</Dialog.Title>
+          <Dialog.Content>
+            <Paragraph>{dialogMessage}</Paragraph>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={hideDialog}>{t('ok')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
