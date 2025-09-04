@@ -24,7 +24,7 @@ const SettingsScreen = () => {
   const [imageToDelete, setImageToDelete] = useState({ setter: null });
 
   const { t, setLanguage, locale } = useContext(LanguageContext);
-  const { toggleTheme, isDarkMode } = useContext(ThemeContext);
+  const { toggleTheme, isDarkMode, setAppThemeColors, themes, currentThemeColors } = useContext(ThemeContext);
   const { colors } = useTheme();
 
   useEffect(() => {
@@ -177,6 +177,38 @@ const SettingsScreen = () => {
           </Card.Content>
         </Card>
 
+        <Card style={styles.card}>
+          <Card.Content>
+            <Title style={styles.cardTitle}>{t('app_theme_colors')}</Title>
+            <View style={styles.themeSelectionContainer}>
+              {themes.map((themeItem) => (
+                <TouchableOpacity
+                  key={themeItem.name}
+                  style={[
+                    styles.themeOption,
+                    currentThemeColors.name === themeItem.name && { borderColor: colors.primary, borderWidth: 2 },
+                  ]}
+                  onPress={() => setAppThemeColors(themeItem)}
+                >
+                  <View
+                    style={[
+                      styles.colorPreview,
+                      { backgroundColor: themeItem.primary },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.colorPreview,
+                      { backgroundColor: themeItem.secondary },
+                    ]}
+                  />
+                  <Text style={styles.themeOptionText}>{themeItem.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Card.Content>
+        </Card>
+
         <Button mode="contained" onPress={handleSave} style={styles.saveButton} icon="content-save" disabled={loading} labelStyle={typography.button}>
           {loading ? <ActivityIndicator color={colors.onPrimary} /> : t('save')}
         </Button>
@@ -288,6 +320,34 @@ const styles = StyleSheet.create({
   saveButton: {
     marginTop: 20,
     paddingVertical: 10,
+  },
+  themeSelectionContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    marginTop: 10,
+  },
+  themeOption: {
+    alignItems: 'center',
+    padding: 10,
+    margin: 5,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    width: '45%',
+  },
+  colorPreview: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginBottom: 5,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  themeOptionText: {
+    ...typography.body,
+    marginTop: 5,
+    textAlign: 'center',
   },
 });
 

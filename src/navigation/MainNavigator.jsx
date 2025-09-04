@@ -18,8 +18,8 @@ const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 const MainTabs = () => {
-  const { isDarkMode } = useContext(ThemeContext);
   const { t } = useContext(LanguageContext);
+  const { colors } = useTheme();
 
   return (
     <Tab.Navigator
@@ -40,10 +40,10 @@ const MainTabs = () => {
 
           return <Icon name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: isDarkMode ? '#b43745ff' : '#b01c2e',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.onSurface,
         tabBarStyle: {
-          backgroundColor: isDarkMode ? '#121212' : '#ffffff',
+          backgroundColor: colors.background,
         },
       })}
     >

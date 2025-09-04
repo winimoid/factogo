@@ -142,7 +142,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
         payment_method: paymentMethod,
       };
 
-      const htmlContent = await generatePdfHtml(documentData, documentType, settings, t, locale, includeSignature);
+      const htmlContent = await generatePdfHtml(documentData, documentType, settings, t, locale, includeSignature, colors.primary);
       const fileName = `${getDocumentTitle(documentType)}_${displayNumber.replace(/\//g, '-')}`;
       
       if (action === 'preview') {

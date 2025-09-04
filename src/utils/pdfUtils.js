@@ -3,7 +3,7 @@ import { toWords } from './numberToWords.js';
 import { Platform } from 'react-native';
 
 // This function is the single source of truth for generating document HTML.
-export const generatePdfHtml = async (item, type, settings, t, locale, includeSignature = true) => {
+export const generatePdfHtml = async (item, type, settings, t, locale, includeSignature = true, primaryColor) => {
   const loadFontAsBase64 = async (fontName) => {
     try {
       const fontPath = Platform.OS === 'android' ? `fonts/${fontName}.ttf` : `${fs.MainBundlePath}/fonts/${fontName}.ttf`;
@@ -75,14 +75,14 @@ export const generatePdfHtml = async (item, type, settings, t, locale, includeSi
       thead { display: table-header-group; }
       #page-header { height: ${headerHeight}px; }
       #page-header-content { padding: 20px 40px; border-bottom: 8px solid #000; position: relative; }
-      #page-header-content::after { content: ''; position: absolute; bottom: -8px; left: 0; right: 0; border-bottom: 4px solid #b01c2e; }
+      #page-header-content::after { content: ''; position: absolute; bottom: -8px; left: 0; right: 0; border-bottom: 4px solid ${primaryColor}; }
       .header-flex { display: flex; justify-content: space-between; align-items: flex-start; }
       .header-logo { max-width: 120px; max-height: 80px; }
       .header-company-details { text-align: right; }
       tfoot { display: table-footer-group; }
       #page-footer { height: ${footerHeight}px; }
       #page-footer-content { padding: 20px 40px; border-top: 8px solid #000; text-align: center; font-size: 10px; position: relative; }
-      #page-footer-content::before { content: ''; position: absolute; top: -8px; left: 0; right: 0; border-top: 4px solid #b01c2e; }
+      #page-footer-content::before { content: ''; position: absolute; top: -8px; left: 0; right: 0; border-top: 4px solid ${primaryColor}; }
       tbody { display: table-row-group; }
       #main-content { padding: 20px 40px; vertical-align: top; }
       .document-details { display: flex; justify-content: space-between; margin-bottom: 30px; }
@@ -160,7 +160,7 @@ export const generatePdfHtml = async (item, type, settings, t, locale, includeSi
       </div>
     `;
     itemsTableHtml = `<table class="items-table"><thead><tr><th>Désignation</th><th class="text-center">Qté</th><th class="text-right">P.U. HT</th><th class="text-right">Montant</th></tr></thead><tbody>${items.map(i => `<tr><td>${i.description}</td><td class="text-center">${i.quantity}</td><td class="text-right">${i.price.toLocaleString('fr-FR')}</td><td class="text-right">${(i.quantity * i.price).toLocaleString('fr-FR')}</td></tr>`).join('')}</tbody></table>`;
-    totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">Total HT</td><td class="text-right">${total.toLocaleString('fr-FR')} FCFA</td></tr><tr><td class="label">Total TTC</td><td class="text-right">${total.toLocaleString('fr-FR')} FCFA</td></tr></tbody></table></div><div class="total-in-words">Arrêté le présent ${getDocumentTitle(type)} à la somme de : <span class="text-bold">${totalInWords}</span>.</div>`;
+    totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">Total HT</td><td class="text-right">${total.toLocaleString('fr-FR')} FCFA</td></tr><tr><td class="label">Total TTC</td><td class="text-right">${total.toLocaleString('fr-FR')} FCFA</td></tr></tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
     signatureHtml = `<div class="signature-section single"><span class="text-bold">Le Gérant</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div>`;
   }
 

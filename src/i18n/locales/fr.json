@@ -71,6 +71,7 @@
   "change_stamp": "Changer le cachet",
   "select_stamp": "Sélectionter le cachet",
   "app_preferences": "Préférences de l'application",
+  "app_theme_colors": "Couleurs du thème de l'application",
   "settings_saved_successfully": "Paramètres enregistrés avec succès !",
   "error_copying_image": "Erreur lors de la copie de l'image",
   "pdf_total_in_words_placeholder": "Total en lettres (à implémenter)",
@@ -112,5 +113,7 @@
   "about_developer": "À propos du développeur",
   "developer_website": "Site web du développeur",
   "delete_image_title": "Supprimer l'image",
-  "delete_image_confirm": "Êtes-vous sûr de vouloir supprimer cette image ?"
+  "delete_image_confirm": "Êtes-vous sûr de vouloir supprimer cette image ?",
+  "total_summary_invoice": "Arrêté la présente {{documentType}} à la somme de :",
+  "total_summary_quote": "Arrêté le présent {{documentType}} à la somme de :"
 }
