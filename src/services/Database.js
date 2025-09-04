@@ -1,4 +1,3 @@
-
 import SQLite from 'react-native-sqlite-storage';
 
 SQLite.DEBUG(true);
@@ -18,58 +17,12 @@ export const openDatabase = async () => {
 };
 
 export const createTables = async (db) => {
-  const usersQuery = `
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL
-    );
-  `;
-
-  const settingsQuery = `
-    CREATE TABLE IF NOT EXISTS settings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      companyName TEXT,
-      logo TEXT,
-      managerName TEXT,
-      signature TEXT,
-      stamp TEXT,
-      description TEXT,
-      informations TEXT
-    );
-  `;
-
-  const invoicesQuery = `
-    CREATE TABLE IF NOT EXISTS invoices (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      clientName TEXT NOT NULL,
-      date TEXT NOT NULL,
-      items TEXT NOT NULL,
-      total REAL NOT NULL
-    );
-  `;
-
-  const quotesQuery = `
-    CREATE TABLE IF NOT EXISTS quotes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      clientName TEXT NOT NULL,
-      date TEXT NOT NULL,
-      items TEXT NOT NULL,
-      total REAL NOT NULL
-    );
-  `;
-
-  const deliveryNotesQuery = `
-    CREATE TABLE IF NOT EXISTS delivery_notes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      clientName TEXT NOT NULL,
-      date TEXT NOT NULL,
-      items TEXT NOT NULL,
-      total INTEGER NOT NULL,
-      order_reference TEXT,
-      payment_method TEXT
-    );
-  `;
+  const usersQuery = `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password TEXT NOT NULL);`;
+  const settingsQuery = `CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY AUTOINCREMENT, companyName TEXT, logo TEXT, managerName TEXT, signature TEXT, stamp TEXT, description TEXT, informations TEXT);`;
+  const invoicesQuery = `CREATE TABLE IF NOT EXISTS invoices (id INTEGER PRIMARY KEY AUTOINCREMENT, document_number TEXT, clientName TEXT NOT NULL, date TEXT NOT NULL, items TEXT NOT NULL, total REAL NOT NULL);`;
+  const quotesQuery = `CREATE TABLE IF NOT EXISTS quotes (id INTEGER PRIMARY KEY AUTOINCREMENT, document_number TEXT, clientName TEXT NOT NULL, date TEXT NOT NULL, items TEXT NOT NULL, total REAL NOT NULL);`;
+  const deliveryNotesQuery = `CREATE TABLE IF NOT EXISTS delivery_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, document_number TEXT, clientName TEXT NOT NULL, date TEXT NOT NULL, items TEXT NOT NULL, total INTEGER NOT NULL, order_reference TEXT, payment_method TEXT);`;
+  const sequencesQuery = `CREATE TABLE IF NOT EXISTS document_sequences (document_type TEXT NOT NULL, period TEXT NOT NULL, last_sequence INTEGER NOT NULL, PRIMARY KEY (document_type, period));`;
 
   try {
     await db.executeSql(usersQuery);
@@ -77,10 +30,40 @@ export const createTables = async (db) => {
     await db.executeSql(invoicesQuery);
     await db.executeSql(quotesQuery);
     await db.executeSql(deliveryNotesQuery);
+    await db.executeSql(sequencesQuery);
   } catch (error) {
     console.error('Error creating tables', error);
   }
 };
+
+// Sequence Generator
+export const getNextDocumentNumber = async (documentType) => {
+  const db = await openDatabase();
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const period = `${year}-${month}`;
+
+  let nextSequence = 1;
+
+  await db.transaction(async (tx) => {
+    const selectQuery = 'SELECT last_sequence FROM document_sequences WHERE document_type = ? AND period = ?';
+    const [results] = await tx.executeSql(selectQuery, [documentType, period]);
+
+    if (results.rows.length > 0) {
+      nextSequence = results.rows.item(0).last_sequence + 1;
+      const updateQuery = 'UPDATE document_sequences SET last_sequence = ? WHERE document_type = ? AND period = ?';
+      await tx.executeSql(updateQuery, [nextSequence, documentType, period]);
+    } else {
+      const insertQuery = 'INSERT INTO document_sequences (document_type, period, last_sequence) VALUES (?, ?, ?)';
+      await tx.executeSql(insertQuery, [documentType, period, nextSequence]);
+    }
+  });
+
+  const formattedSequence = nextSequence.toString().padStart(3, '0');
+  return `${formattedSequence}/${month}/${year}`;
+};
+
 
 // User functions
 export const addUser = async (username, password) => {
@@ -108,10 +91,7 @@ export const getUser = async (username) => {
 // Settings functions
 export const saveSettings = async (settings) => {
   const db = await openDatabase();
-  const query = `
-    INSERT OR REPLACE INTO settings (id, companyName, logo, managerName, signature, stamp, description, informations)
-    VALUES (1, ?, ?, ?, ?, ?, ?, ?);
-  `;
+  const query = `INSERT OR REPLACE INTO settings (id, companyName, logo, managerName, signature, stamp, description, informations) VALUES (1, ?, ?, ?, ?, ?, ?, ?);`;
   const { companyName, logo, managerName, signature, stamp, description, informations } = settings;
   try {
     await db.executeSql(query, [companyName, logo, managerName, signature, stamp, description, informations]);
@@ -132,24 +112,13 @@ export const getSettings = async () => {
   }
 };
 
-export const clearSettings = async () => {
-  const db = await openDatabase();
-  const query = 'DELETE FROM settings';
-  try {
-    await db.executeSql(query);
-    console.log('Settings cleared successfully.');
-  } catch (error) {
-    console.error('Error clearing settings', error);
-  }
-};
-
 // Invoice functions
 export const addInvoice = async (invoice) => {
   const db = await openDatabase();
-  const query = 'INSERT INTO invoices (clientName, date, items, total) VALUES (?, ?, ?, ?)';
-  const { clientName, date, items, total } = invoice;
+  const query = 'INSERT INTO invoices (document_number, clientName, date, items, total) VALUES (?, ?, ?, ?, ?)';
+  const { document_number, clientName, date, items, total } = invoice;
   try {
-    await db.executeSql(query, [clientName, date, JSON.stringify(items), total]);
+    await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total]);
   } catch (error) {
     console.error('Error adding invoice', error);
   }
@@ -169,10 +138,10 @@ export const getInvoices = async () => {
 
 export const updateInvoice = async (id, invoice) => {
   const db = await openDatabase();
-  const query = 'UPDATE invoices SET clientName = ?, date = ?, items = ?, total = ? WHERE id = ?';
-  const { clientName, date, items, total } = invoice;
+  const query = 'UPDATE invoices SET document_number = ?, clientName = ?, date = ?, items = ?, total = ? WHERE id = ?';
+  const { document_number, clientName, date, items, total } = invoice;
   try {
-    await db.executeSql(query, [clientName, date, JSON.stringify(items), total, id]);
+    await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, id]);
   } catch (error) {
     console.error('Error updating invoice', error);
   }
@@ -192,10 +161,10 @@ export const deleteInvoice = async (id) => {
 // Quote functions
 export const addQuote = async (quote) => {
   const db = await openDatabase();
-  const query = 'INSERT INTO quotes (clientName, date, items, total) VALUES (?, ?, ?, ?)';
-  const { clientName, date, items, total } = quote;
+  const query = 'INSERT INTO quotes (document_number, clientName, date, items, total) VALUES (?, ?, ?, ?, ?)';
+  const { document_number, clientName, date, items, total } = quote;
   try {
-    await db.executeSql(query, [clientName, date, JSON.stringify(items), total]);
+    await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total]);
   } catch (error) {
     console.error('Error adding quote', error);
   }
@@ -215,10 +184,10 @@ export const getQuotes = async () => {
 
 export const updateQuote = async (id, quote) => {
   const db = await openDatabase();
-  const query = 'UPDATE quotes SET clientName = ?, date = ?, items = ?, total = ? WHERE id = ?';
-  const { clientName, date, items, total } = quote;
+  const query = 'UPDATE quotes SET document_number = ?, clientName = ?, date = ?, items = ?, total = ? WHERE id = ?';
+  const { document_number, clientName, date, items, total } = quote;
   try {
-    await db.executeSql(query, [clientName, date, JSON.stringify(items), total, id]);
+    await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, id]);
   } catch (error) {
     console.error('Error updating quote', error);
   }
@@ -237,10 +206,10 @@ export const deleteQuote = async (id) => {
 // Delivery Note functions
 export const addDeliveryNote = async (deliveryNote) => {
   const db = await openDatabase();
-  const query = 'INSERT INTO delivery_notes (clientName, date, items, total, order_reference, payment_method) VALUES (?, ?, ?, ?, ?, ?)';
-  const { clientName, date, items, total, orderReference, paymentMethod } = deliveryNote;
+  const query = 'INSERT INTO delivery_notes (document_number, clientName, date, items, total, order_reference, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?)';
+  const { document_number, clientName, date, items, total, orderReference, paymentMethod } = deliveryNote;
   try {
-    await db.executeSql(query, [clientName, date, JSON.stringify(items), total, orderReference, paymentMethod]);
+    await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, orderReference, paymentMethod]);
   } catch (error) {
     console.error('Error adding delivery note', error);
   }
@@ -260,10 +229,10 @@ export const getDeliveryNotes = async () => {
 
 export const updateDeliveryNote = async (id, deliveryNote) => {
   const db = await openDatabase();
-  const query = 'UPDATE delivery_notes SET clientName = ?, date = ?, items = ?, total = ?, order_reference = ?, payment_method = ? WHERE id = ?';
-  const { clientName, date, items, total, orderReference, paymentMethod } = deliveryNote;
+  const query = 'UPDATE delivery_notes SET document_number = ?, clientName = ?, date = ?, items = ?, total = ?, order_reference = ?, payment_method = ? WHERE id = ?';
+  const { document_number, clientName, date, items, total, orderReference, paymentMethod } = deliveryNote;
   try {
-    await db.executeSql(query, [clientName, date, JSON.stringify(items), total, orderReference, paymentMethod, id]);
+    await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, orderReference, paymentMethod, id]);
   } catch (error) {
     console.error('Error updating delivery note', error);
   }

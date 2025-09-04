@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, StyleSheet, ScrollView, Image } from 'react-native';
-import { TextInput, Button, Text, Switch, useTheme, Card, Title, Paragraph, Snackbar, Divider, ActivityIndicator } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { TextInput, Button, Text, Switch, useTheme, Card, Title, Paragraph, Snackbar, Divider, ActivityIndicator, Portal, Dialog } from 'react-native-paper';
 import { LanguageContext } from '../../contexts/LanguageContext';
 import { ThemeContext } from '../../contexts/ThemeContext';
 import { saveSettings, getSettings } from '../../services/Database';
 import { launchImageLibrary } from 'react-native-image-picker';
 import fs from 'react-native-fs';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { typography } from '../../styles/typography';
 
 const SettingsScreen = () => {
@@ -18,6 +19,9 @@ const SettingsScreen = () => {
   const [informations, setInformations] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [imageToDelete, setImageToDelete] = useState({ setter: null });
 
   const { t, setLanguage, locale } = useContext(LanguageContext);
   const { toggleTheme, isDarkMode } = useContext(ThemeContext);
@@ -66,6 +70,39 @@ const SettingsScreen = () => {
     });
   };
 
+  const showDeleteDialog = (setter) => {
+    setImageToDelete({ setter });
+    setDialogVisible(true);
+  };
+
+  const hideDialog = () => {
+    setDialogVisible(false);
+    setImageToDelete({ setter: null });
+  };
+
+  const handleDeleteImage = () => {
+    if (imageToDelete.setter) {
+      imageToDelete.setter(null);
+    }
+    hideDialog();
+  };
+
+  const renderImagePicker = (label, image, setter, icon) => (
+    <View style={styles.imagePickerContainer}>
+      <Button icon={icon} mode="outlined" onPress={() => selectImage(setter)} style={styles.imageButton} labelStyle={typography.button}>
+        {image ? t(`change_${label}`) : t(`select_${label}`)}
+      </Button>
+      {image && (
+        <View style={styles.previewContainer}>
+          <Image source={{ uri: image.startsWith('file://') ? image : `file://${image}` }} style={styles.previewImage} />
+          <TouchableOpacity onPress={() => showDeleteDialog(setter)} style={styles.deleteButton}>
+            <Icon name="close-circle" size={24} color={colors.error} />
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -111,26 +148,10 @@ const SettingsScreen = () => {
               inputStyle={typography.body}
             />
 
-            <View style={styles.imagePickerContainer}>
-              <Button icon="image-plus" mode="outlined" onPress={() => selectImage(setLogo)} style={styles.imageButton} labelStyle={typography.button}>
-                {logo ? t('change_logo') : t('select_logo')}
-              </Button>
-              {logo && <Image source={{ uri: logo.startsWith('file://') ? logo : `file://${logo}` }} style={styles.previewImage} />}
-            </View>
+            {renderImagePicker('logo', logo, setLogo, 'image-plus')}
+            {renderImagePicker('signature', signature, setSignature, 'signature-freehand')}
+            {renderImagePicker('stamp', stamp, setStamp, 'seal')}
 
-            <View style={styles.imagePickerContainer}>
-              <Button icon="signature-freehand" mode="outlined" onPress={() => selectImage(setSignature)} style={styles.imageButton} labelStyle={typography.button}>
-                {signature ? t('change_signature') : t('select_signature')}
-              </Button>
-              {signature && <Image source={{ uri: signature.startsWith('file://') ? signature : `file://${signature}` }} style={styles.previewImage} />}
-            </View>
-
-            <View style={styles.imagePickerContainer}>
-              <Button icon="seal" mode="outlined" onPress={() => selectImage(setStamp)} style={styles.imageButton} labelStyle={typography.button}>
-                {stamp ? t('change_stamp') : t('select_stamp')}
-              </Button>
-              {stamp && <Image source={{ uri: stamp.startsWith('file://') ? stamp : `file://${stamp}` }} style={styles.previewImage} />}
-            </View>
           </Card.Content>
         </Card>
 
@@ -174,6 +195,19 @@ const SettingsScreen = () => {
       >
         {t('settings_saved_successfully')}
       </Snackbar>
+
+      <Portal>
+        <Dialog visible={dialogVisible} onDismiss={hideDialog} style={{ borderRadius: 8}}>
+          <Dialog.Title>{t('delete_image_title')}</Dialog.Title>
+          <Dialog.Content>
+            <Paragraph>{t('delete_image_confirm')}</Paragraph>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={hideDialog}>{t('cancel')}</Button>
+            <Button onPress={handleDeleteImage} color={colors.error}>{t('delete')}</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 };
@@ -212,6 +246,11 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 10,
   },
+  previewContainer: {
+    position: 'relative',
+    width: 80,
+    height: 80,
+  },
   previewImage: {
     width: 80,
     height: 80,
@@ -219,6 +258,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 50,
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 2,
   },
   preferenceItem: {
     flexDirection: 'row',

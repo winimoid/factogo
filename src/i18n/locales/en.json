@@ -47,7 +47,7 @@
   "client_name_required": "Client name is required.",
   "share_invoice": "Share Invoice",
   "share_quote": "Share Quote",
-  "app_title": "FactoGo",
+  "app_title": "Facto-Go",
   "app_slogan": "Your Invoice & Quote Companion",
   "invalid_credentials": "Invalid username or password.",
   "dismiss": "Dismiss",
@@ -108,5 +108,9 @@
   "order_reference": "Order Ref.",
   "payment_method": "Payment",
   "total_quantity": "Total Quantity",
-  "reception_acknowledgement": "Acknowledgement of Receipt"
+  "reception_acknowledgement": "Acknowledgement of Receipt",
+  "about_developer": "About the developer",
+  "developer_website": "Developer's website",
+  "delete_image_title": "Delete Image",
+  "delete_image_confirm": "Are you sure you want to delete this image?"
 }

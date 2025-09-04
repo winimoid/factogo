@@ -47,7 +47,7 @@
   "client_name_required": "Le nom du client est requis.",
   "share_invoice": "Partager la facture",
   "share_quote": "Partager le devis",
-  "app_title": "FactoGo",
+  "app_title": "Facto-Go",
   "app_slogan": "Votre Compagnon Factures & Devis",
   "invalid_credentials": "Nom d'utilisateur ou mot de passe invalide.",
   "dismiss": "Fermer",
@@ -108,5 +108,9 @@
   "order_reference": "Réf. Commande",
   "payment_method": "Paiement",
   "total_quantity": "Quantité totale",
-  "reception_acknowledgement": "Accusé de réception"
+  "reception_acknowledgement": "Accusé de réception",
+  "about_developer": "À propos du développeur",
+  "developer_website": "Site web du développeur",
+  "delete_image_title": "Supprimer l'image",
+  "delete_image_confirm": "Êtes-vous sûr de vouloir supprimer cette image ?"
 }

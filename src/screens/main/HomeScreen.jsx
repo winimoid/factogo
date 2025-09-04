@@ -97,7 +97,8 @@ const HomeScreen = ({ navigation }) => {
     }
     // Always include signature when generating from home screen
     const html = await generatePdfHtml(item, type, settings, t, locale, true);
-    const options = { html, fileName: `${type}_${item.id}`, directory: 'Documents' };
+    const fileName = `${type}_${item.document_number.replace(/\//g, '-')}`;
+    const options = { html, fileName, directory: 'Documents' };
 
     try {
       const file = await RNHTMLtoPDF.convert(options);
@@ -131,11 +132,6 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const renderDocument = ({ item, type }) => {
-    const isDeliveryNote = type === 'delivery_note';
-    const totalOrQuantity = isDeliveryNote 
-      ? `${t('total_quantity')}: ${item.total}`
-      : `${t('total')}: ${item.total.toFixed(2)}`;
-
     const iconMap = {
       invoice: 'file-document-outline',
       quote: 'file-document-edit-outline',
@@ -145,8 +141,9 @@ const HomeScreen = ({ navigation }) => {
     return (
       <Card style={styles.card} elevation={4}>
         <List.Item
-          title={item.clientName}
-          description={`${t('date')}: ${item.date}\n${totalOrQuantity}`}
+          title={`${t(type)} N° ${item.document_number}`}
+          description={`${t('client')}: ${item.clientName}
+${t('date')}: ${item.date}`}
           left={props => <List.Icon {...props} icon={iconMap[type]} />}
           titleStyle={styles.listItemTitle}
           descriptionStyle={styles.listItemDescription}
@@ -200,7 +197,7 @@ const HomeScreen = ({ navigation }) => {
       )}
 
       <Portal>
-        <Dialog visible={deleteDialogVisible} onDismiss={hideDeleteDialog}>
+        <Dialog visible={deleteDialogVisible} onDismiss={hideDeleteDialog} style={{ borderRadius: 8}}>
           <Dialog.Title>{t('confirm_deletion')}</Dialog.Title>
           <Dialog.Content><Text>{t('delete_confirmation_message', { type: t(itemTypeToDelete) })}</Text></Dialog.Content>
           <Dialog.Actions>
@@ -208,7 +205,7 @@ const HomeScreen = ({ navigation }) => {
             <Button onPress={confirmDelete}>{t('delete')}</Button>
           </Dialog.Actions>
         </Dialog>
-        <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)}>
+        <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)} style={{ borderRadius: 8}}>
           <Dialog.Title>{t('information')}</Dialog.Title>
           <Dialog.Content><Text>{dialogMessage}</Text></Dialog.Content>
           <Dialog.Actions><Button onPress={() => setDialogVisible(false)}>{t('ok')}</Button></Dialog.Actions>

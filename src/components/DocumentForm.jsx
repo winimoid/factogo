@@ -3,7 +3,7 @@ import { View, StyleSheet, FlatList, Platform } from 'react-native';
 import { TextInput, Button, Text, useTheme, IconButton, Card, Title, ActivityIndicator, Portal, Dialog, Paragraph, Switch } from 'react-native-paper';
 import { DatePickerModal } from 'react-native-paper-dates';
 import { LanguageContext } from '../contexts/LanguageContext';
-import { getSettings } from '../services/Database';
+import { getSettings, getNextDocumentNumber } from '../services/Database';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import Share from 'react-native-share';
 import fs from 'react-native-fs';
@@ -21,6 +21,10 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
   const [downloadPath, setDownloadPath] = useState('');
   const [includeSignature, setIncludeSignature] = useState(true);
 
+  // Numbering State
+  const [officialDocumentNumber, setOfficialDocumentNumber] = useState('');
+  const [displayNumber, setDisplayNumber] = useState('');
+
   // Document-specific State
   const [total, setTotal] = useState(0); // For invoices/quotes
   const [totalQuantity, setTotalQuantity] = useState(0); // For delivery notes
@@ -34,27 +38,35 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
   const isDeliveryNote = useMemo(() => documentType === 'delivery_note', [documentType]);
 
   useEffect(() => {
-    if (document) {
-      setClientName(document.clientName);
-      if (document.date && typeof document.date === 'string') {
-        const parts = document.date.split('-');
-        if (parts.length === 3) {
-          setDate(new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
-        } else {
-          setDate(new Date());
+    const loadDocument = async () => {
+      if (document) {
+        // Editing an existing document
+        setClientName(document.clientName);
+        setOfficialDocumentNumber(document.document_number);
+        setDisplayNumber(document.document_number);
+        if (document.date && typeof document.date === 'string') {
+          const parts = document.date.split('-');
+          if (parts.length === 3) {
+            setDate(new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
+          } else { setDate(new Date()); }
+        } else { setDate(new Date()); }
+        setItems(document.items ? JSON.parse(document.items) : []);
+        setTotal(document.total);
+
+        if (isDeliveryNote) {
+          setOrderReference(document.order_reference || '');
+          setPaymentMethod(document.payment_method || '');
         }
       } else {
-        setDate(new Date());
+        // Creating a new document
+        const newDocNumber = await getNextDocumentNumber(documentType);
+        setOfficialDocumentNumber(newDocNumber);
+        setDisplayNumber(newDocNumber);
       }
-      setItems(document.items ? JSON.parse(document.items) : []);
-      setTotal(document.total);
+    };
 
-      if (isDeliveryNote) {
-        setOrderReference(document.order_reference || '');
-        setPaymentMethod(document.payment_method || '');
-      }
-    }
-  }, [document, isDeliveryNote]);
+    loadDocument();
+  }, [document, documentType, isDeliveryNote]);
 
   const calculateTotals = useCallback(() => {
     const newTotal = items.reduce((acc, item) => acc + item.quantity * item.price, 0);
@@ -84,6 +96,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
 
   const handleSave = async () => {
     let newDocument = { 
+      document_number: officialDocumentNumber, // Always save the official number
       clientName, 
       date: date.toISOString().split('T')[0], 
       items 
@@ -118,9 +131,9 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
       const settings = await getSettings();
       if (!settings) { return; }
 
-      // Construct the document data object from state
       const documentData = {
         id: document?.id,
+        document_number: displayNumber, // Use the display number for the PDF
         clientName,
         date: date.toISOString(),
         items: JSON.stringify(items),
@@ -130,7 +143,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
       };
 
       const htmlContent = await generatePdfHtml(documentData, documentType, settings, t, locale, includeSignature);
-      const fileName = `${getDocumentTitle(documentType)}_${document?.id || 'new'}`;
+      const fileName = `${getDocumentTitle(documentType)}_${displayNumber.replace(/\//g, '-')}`;
       
       if (action === 'preview') {
         navigation.navigate('PdfPreview', { htmlContent });
@@ -174,54 +187,22 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item, index }) => (
           <View style={[styles.itemContainer, { backgroundColor: colors.surface }]}>
-            <TextInput
-              label={t('item')}
-              value={item.description}
-              onChangeText={(value) => handleItemChange(index, 'description', value)}
-              style={styles.itemInput}
-              mode="outlined"
-            />
-            <TextInput
-              label={t('quantity')}
-              value={item.quantity.toString()}
-              onChangeText={(value) => handleItemChange(index, 'quantity', parseInt(value, 10) || 0)}
-              keyboardType="numeric"
-              style={[styles.itemInput, { maxWidth: 80 }]}
-              mode="outlined"
-            />
+            <TextInput label={t('item')} value={item.description} onChangeText={(value) => handleItemChange(index, 'description', value)} style={styles.itemInput} mode="outlined" />
+            <TextInput label={t('quantity')} value={item.quantity.toString()} onChangeText={(value) => handleItemChange(index, 'quantity', parseInt(value, 10) || 0)} keyboardType="numeric" style={[styles.itemInput, { maxWidth: 80 }]} mode="outlined" />
             {!isDeliveryNote && (
-              <TextInput
-                label={t('unit_price')}
-                value={item.price.toString()}
-                onChangeText={(value) => handleItemChange(index, 'price', parseFloat(value) || 0)}
-                keyboardType="numeric"
-                style={styles.itemInput}
-                mode="outlined"
-              />
+              <TextInput label={t('unit_price')} value={item.price.toString()} onChangeText={(value) => handleItemChange(index, 'price', parseFloat(value) || 0)} keyboardType="numeric" style={styles.itemInput} mode="outlined" />
             )}
-            <IconButton
-              icon="close-circle"
-              color={colors.error}
-              size={20}
-              onPress={() => handleRemoveItem(index)}
-            />
+            <IconButton icon="close-circle" color={colors.error} size={20} onPress={() => handleRemoveItem(index)} />
           </View>
         )}
         ListHeaderComponent={(
           <View style={styles.contentPadding}>
             <Card style={styles.card} elevation={4}>
               <Card.Content>
-                <Title style={styles.cardTitle}>{t('client')}</Title>
+                <Title style={styles.cardTitle}>{getDocumentTitle(documentType)}</Title>
+                <TextInput label={`${t(documentType)} N°`} value={displayNumber} onChangeText={setDisplayNumber} style={styles.input} mode="outlined" />
                 <TextInput label={t('client_name')} value={clientName} onChangeText={setClientName} style={styles.input} mode="outlined" />
-                <TextInput
-                  label={t('date')}
-                  value={date.toISOString().split('T')[0]}
-                  onFocus={() => setIsDatePickerVisible(true)}
-                  showSoftInputOnFocus={false}
-                  style={styles.input}
-                  mode="outlined"
-                  right={<TextInput.Icon icon="calendar" onPress={() => setIsDatePickerVisible(true)} />}
-                />
+                <TextInput label={t('date')} value={date.toISOString().split('T')[0]} onFocus={() => setIsDatePickerVisible(true)} showSoftInputOnFocus={false} style={styles.input} mode="outlined" right={<TextInput.Icon icon="calendar" onPress={() => setIsDatePickerVisible(true)} />} />
               </Card.Content>
             </Card>
 
@@ -281,7 +262,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
       />
 
       <Portal>
-        <Dialog visible={downloadDialogVisible} onDismiss={() => setDownloadDialogVisible(false)}>
+        <Dialog visible={downloadDialogVisible} onDismiss={() => setDownloadDialogVisible(false)} style={{ borderRadius: 8}}>
           <Dialog.Title>{t('download_complete')}</Dialog.Title>
           <Dialog.Content><Paragraph>{t('download_message', { documentType: getDocumentTitle(documentType), path: downloadPath })}</Paragraph></Dialog.Content>
           <Dialog.Actions><Button onPress={() => setDownloadDialogVisible(false)}>{t('dismiss')}</Button></Dialog.Actions>

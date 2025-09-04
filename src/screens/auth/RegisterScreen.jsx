@@ -37,7 +37,9 @@ const RegisterScreen = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Image source={require('../../assets/images/logo.png')} style={styles.logo} />
-      <Title style={styles.appTitle}>{t('register')}</Title>
+      <Title style={styles.appTitle}>{t('app_title')}</Title>
+
+      <Text style={styles.slogan}>{t('app_slogan')}</Text>
 
       <Card style={styles.card} elevation={4}>
         <Card.Content>

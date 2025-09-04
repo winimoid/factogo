@@ -1,8 +1,23 @@
 import fs from 'react-native-fs';
 import { toWords } from './numberToWords.js';
+import { Platform } from 'react-native';
 
 // This function is the single source of truth for generating document HTML.
 export const generatePdfHtml = async (item, type, settings, t, locale, includeSignature = true) => {
+  const loadFontAsBase64 = async (fontName) => {
+    try {
+      const fontPath = Platform.OS === 'android' ? `fonts/${fontName}.ttf` : `${fs.MainBundlePath}/fonts/${fontName}.ttf`;
+      const fontData = await fs.readFileAssets(fontPath, 'base64');
+      return fontData;
+    } catch (error) {
+      console.error(`Error loading font ${fontName}:`, error);
+      return null;
+    }
+  };
+
+  const outfitRegularBase64 = await loadFontAsBase64('Outfit-Regular');
+  const outfitBoldBase64 = await loadFontAsBase64('Outfit-Bold');
+
   const isDeliveryNote = type === 'delivery_note';
   const total = item.total || 0;
   const items = item.items ? JSON.parse(item.items) : [];
@@ -42,6 +57,18 @@ export const generatePdfHtml = async (item, type, settings, t, locale, includeSi
   }
 
   const styles = `
+      @font-face {
+        font-family: 'Outfit';
+        src: url(data:font/truetype;base64,${outfitRegularBase64}) format('truetype');
+        font-weight: normal;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: 'Outfit';
+        src: url(data:font/truetype;base64,${outfitBoldBase64}) format('truetype');
+        font-weight: bold;
+        font-style: normal;
+      }
       @page { size: A4; margin: 0; }
       html, body { margin: 0; padding: 0; font-family: 'Outfit', Arial, sans-serif; font-size: 12px; color: #333; width: 210mm; }
       .document-wrapper { width: 100%; height: 100%; border-collapse: collapse; display: table; }
@@ -83,7 +110,7 @@ export const generatePdfHtml = async (item, type, settings, t, locale, includeSi
       .text-bold { font-weight: bold; }
   `;
 
-  const docTitleHtml = `<div class="document-title">${getDocumentTitle(type)} N° ${item?.id || ''}</div><div>${formattedDate}</div>`;
+  const docTitleHtml = `<div class="document-title">${getDocumentTitle(type)} N° ${item?.document_number || ''}</div><div>${formattedDate}</div>`;
   let headerDetailsHtml, itemsTableHtml, totalsHtml, signatureHtml;
 
   // The shouldIncludeSignature parameter is now passed directly.
