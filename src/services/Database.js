@@ -59,11 +59,24 @@ export const createTables = async (db) => {
     );
   `;
 
+  const deliveryNotesQuery = `
+    CREATE TABLE IF NOT EXISTS delivery_notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      clientName TEXT NOT NULL,
+      date TEXT NOT NULL,
+      items TEXT NOT NULL,
+      total INTEGER NOT NULL,
+      order_reference TEXT,
+      payment_method TEXT
+    );
+  `;
+
   try {
     await db.executeSql(usersQuery);
     await db.executeSql(settingsQuery);
     await db.executeSql(invoicesQuery);
     await db.executeSql(quotesQuery);
+    await db.executeSql(deliveryNotesQuery);
   } catch (error) {
     console.error('Error creating tables', error);
   }
@@ -218,5 +231,50 @@ export const deleteQuote = async (id) => {
     await db.executeSql(query, [id]);
   } catch (error) {
     console.error('Error deleting quote', error);
+  }
+};
+
+// Delivery Note functions
+export const addDeliveryNote = async (deliveryNote) => {
+  const db = await openDatabase();
+  const query = 'INSERT INTO delivery_notes (clientName, date, items, total, order_reference, payment_method) VALUES (?, ?, ?, ?, ?, ?)';
+  const { clientName, date, items, total, orderReference, paymentMethod } = deliveryNote;
+  try {
+    await db.executeSql(query, [clientName, date, JSON.stringify(items), total, orderReference, paymentMethod]);
+  } catch (error) {
+    console.error('Error adding delivery note', error);
+  }
+};
+
+export const getDeliveryNotes = async () => {
+  const db = await openDatabase();
+  const query = 'SELECT * FROM delivery_notes ORDER BY id DESC';
+  try {
+    const [results] = await db.executeSql(query);
+    return results.rows.raw();
+  } catch (error) {
+    console.error('Error getting delivery notes', error);
+    return [];
+  }
+};
+
+export const updateDeliveryNote = async (id, deliveryNote) => {
+  const db = await openDatabase();
+  const query = 'UPDATE delivery_notes SET clientName = ?, date = ?, items = ?, total = ?, order_reference = ?, payment_method = ? WHERE id = ?';
+  const { clientName, date, items, total, orderReference, paymentMethod } = deliveryNote;
+  try {
+    await db.executeSql(query, [clientName, date, JSON.stringify(items), total, orderReference, paymentMethod, id]);
+  } catch (error) {
+    console.error('Error updating delivery note', error);
+  }
+};
+
+export const deleteDeliveryNote = async (id) => {
+  const db = await openDatabase();
+  const query = 'DELETE FROM delivery_notes WHERE id = ?';
+  try {
+    await db.executeSql(query, [id]);
+  } catch (error) {
+    console.error('Error deleting delivery note', error);
   }
 };

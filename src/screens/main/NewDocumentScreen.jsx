@@ -1,57 +1,46 @@
 import React, { useContext } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Button, useTheme, Card, Title } from 'react-native-paper';
+import { Button, useTheme, Title } from 'react-native-paper';
 import { LanguageContext } from '../../contexts/LanguageContext';
-import { addInvoice, updateInvoice, addQuote, updateQuote } from '../../services/Database';
 import { typography } from '../../styles/typography';
 
 const NewDocumentScreen = ({ navigation }) => {
   const { t } = useContext(LanguageContext);
   const { colors } = useTheme();
 
-  const navigateToInvoiceForm = () => {
-    navigation.navigate('InvoiceForm', {
-      dbActions: {
-        add: addInvoice,
-        update: updateInvoice,
-      },
-      document: null, // Explicitly pass null for a new document
-    });
-  };
-
-  const navigateToQuoteForm = () => {
-    navigation.navigate('QuoteForm', {
-      dbActions: {
-        add: addQuote,
-        update: updateQuote,
-      },
-      document: null, // Explicitly pass null for a new document
-    });
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Title style={styles.screenTitle}>{t('create_new_document')}</Title>
 
-          <Button
-            mode="contained"
-            onPress={navigateToInvoiceForm}
-            style={styles.button}
-            icon="file-document-outline"
-            labelStyle={typography.button}
-          >
-            {t('create_invoice')}
-          </Button>
+      <Button
+        mode="contained"
+        onPress={() => navigation.navigate('InvoiceForm', { document: null })}
+        style={styles.button}
+        icon="file-document-outline"
+        labelStyle={typography.button}
+      >
+        {t('create_invoice')}
+      </Button>
 
-          <Button
-            mode="contained"
-            onPress={navigateToQuoteForm}
-            style={styles.button}
-            icon="file-document-edit-outline"
-            labelStyle={typography.button}
-          >
-            {t('create_quote')}
-          </Button>
+      <Button
+        mode="contained"
+        onPress={() => navigation.navigate('QuoteForm', { document: null })}
+        style={styles.button}
+        icon="file-document-edit-outline"
+        labelStyle={typography.button}
+      >
+        {t('create_quote')}
+      </Button>
+
+      <Button
+        mode="contained"
+        onPress={() => navigation.navigate('DeliveryNoteForm', { document: null })}
+        style={styles.button}
+        icon="truck-delivery-outline"
+        labelStyle={typography.button}
+      >
+        {t('create_delivery_note')}
+      </Button>
 
     </View>
   );

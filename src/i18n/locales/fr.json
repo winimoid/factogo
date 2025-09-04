@@ -98,5 +98,15 @@
   "ok": "OK",
   "download_complete": "Téléchargement terminé",
   "download_message": "{{documentType}} téléchargé dans {{path}}",
-  "include_signature_stamp": "Inclure la signature et le cachet"
+  "include_signature_stamp": "Inclure la signature et le cachet",
+  "delivery_note": "Bon de livraison",
+  "delivery_notes": "Bons de livraison",
+  "create_delivery_note": "Créer un bon de livraison",
+  "edit_delivery_note": "Modifier le bon de livraison",
+  "delete_delivery_note": "Supprimer le bon de livraison",
+  "no_delivery_notes": "Aucun bon de livraison trouvé.",
+  "order_reference": "Réf. Commande",
+  "payment_method": "Paiement",
+  "total_quantity": "Quantité totale",
+  "reception_acknowledgement": "Accusé de réception"
 }

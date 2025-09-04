@@ -98,5 +98,15 @@
   "ok": "OK",
   "download_complete": "Download Complete",
   "download_message": "{{documentType}} downloaded to {{path}}",
-  "include_signature_stamp": "Include signature and stamp"
+  "include_signature_stamp": "Include signature and stamp",
+  "delivery_note": "Delivery Note",
+  "delivery_notes": "Delivery Notes",
+  "create_delivery_note": "Create Delivery Note",
+  "edit_delivery_note": "Edit Delivery Note",
+  "delete_delivery_note": "Delete Delivery Note",
+  "no_delivery_notes": "No delivery notes found.",
+  "order_reference": "Order Ref.",
+  "payment_method": "Payment",
+  "total_quantity": "Total Quantity",
+  "reception_acknowledgement": "Acknowledgement of Receipt"
 }
