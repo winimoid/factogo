@@ -97,5 +97,6 @@
   "information": "Information",
   "ok": "OK",
   "download_complete": "Download Complete",
-  "download_message": "{{documentType}} downloaded to {{path}}"
+  "download_message": "{{documentType}} downloaded to {{path}}",
+  "include_signature_stamp": "Include signature and stamp"
 }

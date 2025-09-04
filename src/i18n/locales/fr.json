@@ -97,5 +97,6 @@
   "information": "Information",
   "ok": "OK",
   "download_complete": "Téléchargement terminé",
-  "download_message": "{{documentType}} téléchargé dans {{path}}"
+  "download_message": "{{documentType}} téléchargé dans {{path}}",
+  "include_signature_stamp": "Inclure la signature et le cachet"
 }

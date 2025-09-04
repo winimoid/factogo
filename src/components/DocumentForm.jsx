@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Platform } from 'react-native';
-import { TextInput, Button, Text, useTheme, IconButton, Card, Title, ActivityIndicator, Portal, Dialog, Paragraph } from 'react-native-paper';
+import { TextInput, Button, Text, useTheme, IconButton, Card, Title, ActivityIndicator, Portal, Dialog, Paragraph, Switch } from 'react-native-paper';
 import { DatePickerModal } from 'react-native-paper-dates';
 import { LanguageContext } from '../contexts/LanguageContext';
 import { getSettings } from '../services/Database';
@@ -23,6 +23,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
   const [permissionDialogVisible, setPermissionDialogVisible] = useState(false);
   const [downloadDialogVisible, setDownloadDialogVisible] = useState(false);
   const [downloadPath, setDownloadPath] = useState('');
+  const [includeSignature, setIncludeSignature] = useState(true);
   const { t, locale } = useContext(LanguageContext);
   const { colors } = useTheme();
   const { document } = route.params || {};
@@ -82,7 +83,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
     navigation.goBack();
   };
 
-  const generatePdfHtml = async () => {
+  const generatePdfHtml = async (shouldIncludeSignature) => {
     const settings = await getSettings();
     const totalInWords = toWords(total, locale, { currency: true });
 
@@ -347,10 +348,12 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
 
                 <div class="signature-section">
                   <span class="text-bold">Le Gérant</span>
+                  ${shouldIncludeSignature ? `
                   <div class="signature-images">
                     ${signatureBase64 ? `<img src="${signatureBase64}" />` : ''}
                     ${stampBase64 ? `<img src="${stampBase64}" />` : ''}
                   </div>
+                  ` : '<div style="height: 80px;"></div>'}
                 </div>
 
               </td>
@@ -384,7 +387,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
         return;
       }
 
-      const htmlContent = await generatePdfHtml();
+      const htmlContent = await generatePdfHtml(includeSignature);
       const fileName = `${documentType === 'invoice' ? 'Invoice' : 'Quote'}_${document?.id || 'new'}`;
       const options = {
         html: htmlContent,
@@ -542,6 +545,11 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
               </Card.Content>
             </Card>
 
+            <View style={[styles.signatureSwitchContainer, {borderColor: colors.outline}]}>
+              <Text style={[typography.body, {color: colors.onSurface}]}>{t('include_signature_stamp')}</Text>
+              <Switch value={includeSignature} onValueChange={setIncludeSignature} />
+            </View>
+
             <Button mode="contained" onPress={handleSave} style={styles.button} icon="content-save" disabled={loadingPdf} labelStyle={typography.button}>
               {loadingPdf ? <ActivityIndicator color={colors.onPrimary} /> : t('save')}
             </Button>
@@ -653,6 +661,15 @@ const styles = StyleSheet.create({
   },
   contentPadding: {
     padding: 20,
+  },
+  signatureSwitchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 15,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
   },
 });
 
