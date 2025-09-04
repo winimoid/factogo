@@ -87,7 +87,7 @@ export const generatePdfHtml = async (item, type, settings, t, locale, includeSi
       #main-content { padding: 20px 40px; vertical-align: top; }
       .document-details { display: flex; justify-content: space-between; margin-bottom: 30px; }
       .document-title { font-size: 24px; font-weight: bold; text-transform: uppercase; }
-      .client-info, .order-info { border: 1px solid #ccc; padding: 15px; flex: 1; }
+      .client-info, .order-info { border: 1px solid #ccc; padding: 15px; flex: 1; text-align: left; }
       .order-info { margin-right: 20px; }
       .items-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
       .items-table th, .items-table td { border: 1px solid #ccc; padding: 8px; text-align: left; }
@@ -147,7 +147,18 @@ export const generatePdfHtml = async (item, type, settings, t, locale, includeSi
       `;
     signatureHtml = `<div class="signature-section multi"><div class="signature-box"><span class="text-bold">${t('reception_acknowledgement')}</span><div style="height: 80px;"></div></div><div class="signature-box"><span class="text-bold">Le Gérant</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div></div>`;
   } else {
-    headerDetailsHtml = `<div class="document-details"><div>${docTitleHtml}</div><div class="client-info"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>- Libreville -</div></div>`;
+    headerDetailsHtml = `
+      <div>
+        ${docTitleHtml}
+      </div>
+      <div style="text-align: right; margin-top: 20px;">
+        <div class="client-info" style="display: inline-block; width: 250px;">
+          <span class="text-bold">${t('client')}:</span><br/>
+          ${item.clientName}<br/>
+          - Libreville -
+        </div>
+      </div>
+    `;
     itemsTableHtml = `<table class="items-table"><thead><tr><th>Désignation</th><th class="text-center">Qté</th><th class="text-right">P.U. HT</th><th class="text-right">Montant</th></tr></thead><tbody>${items.map(i => `<tr><td>${i.description}</td><td class="text-center">${i.quantity}</td><td class="text-right">${i.price.toLocaleString('fr-FR')}</td><td class="text-right">${(i.quantity * i.price).toLocaleString('fr-FR')}</td></tr>`).join('')}</tbody></table>`;
     totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">Total HT</td><td class="text-right">${total.toLocaleString('fr-FR')} FCFA</td></tr><tr><td class="label">Total TTC</td><td class="text-right">${total.toLocaleString('fr-FR')} FCFA</td></tr></tbody></table></div><div class="total-in-words">Arrêté le présent ${getDocumentTitle(type)} à la somme de : <span class="text-bold">${totalInWords}</span>.</div>`;
     signatureHtml = `<div class="signature-section single"><span class="text-bold">Le Gérant</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div>`;

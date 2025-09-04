@@ -5,6 +5,7 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { openDatabase } from './src/services/Database';
 import { requestAppPermissions } from './src/helpers/PermissionHelper';
+import ThemedStatusBar from './src/components/ThemedStatusBar';
 
 // Open the database when the app starts
 openDatabase();
@@ -24,6 +25,7 @@ const App = () => {
   return (
     <LanguageProvider>
       <ThemeProvider>
+        <ThemedStatusBar />
         <AuthProvider>
           <AppNavigator />
         </AuthProvider>
