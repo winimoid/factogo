@@ -115,5 +115,6 @@
   "delete_image_title": "Delete Image",
   "delete_image_confirm": "Are you sure you want to delete this image?",
   "total_summary_invoice": "Summarized the present {{documentType}} to the sum of:",
-  "total_summary_quote": "Summarized the present {{documentType}} to the sum of:"
+  "total_summary_quote": "Summarized the present {{documentType}} to the sum of:",
+  "print": "Print"
 }

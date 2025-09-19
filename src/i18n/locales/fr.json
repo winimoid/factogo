@@ -115,5 +115,6 @@
   "delete_image_title": "Supprimer l'image",
   "delete_image_confirm": "Êtes-vous sûr de vouloir supprimer cette image ?",
   "total_summary_invoice": "Arrêté la présente {{documentType}} à la somme de :",
-  "total_summary_quote": "Arrêté le présent {{documentType}} à la somme de :"
+  "total_summary_quote": "Arrêté le présent {{documentType}} à la somme de :",
+  "print": "Imprimer"
 }

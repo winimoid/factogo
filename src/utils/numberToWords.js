@@ -56,7 +56,7 @@ function convertThreeDigits(num, lang) {
                 if (ten === 7 || ten === 9) {
                     result += tens[lang][ten - 1];
                     const remainder = 10 + one;
-                    result += (remainder > 10 ? '-' + ones[lang][remainder] : '');
+                    result += (remainder >= 10 ? '-' + ones[lang][remainder] : '');
                 } else {
                     result += tens[lang][ten];
                     if (one > 0) {

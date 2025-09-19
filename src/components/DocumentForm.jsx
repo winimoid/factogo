@@ -5,6 +5,7 @@ import { DatePickerModal } from 'react-native-paper-dates';
 import { LanguageContext } from '../contexts/LanguageContext';
 import { getSettings, getNextDocumentNumber } from '../services/Database';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import RNPrint from 'react-native-print';
 import Share from 'react-native-share';
 import fs from 'react-native-fs';
 import { typography } from '../styles/typography';
@@ -96,7 +97,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
 
   const handleSave = async () => {
     let newDocument = { 
-      document_number: officialDocumentNumber, // Always save the official number
+      document_number: displayNumber, // Always save the official number
       clientName, 
       date: date.toISOString().split('T')[0], 
       items 
@@ -147,6 +148,15 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
       
       if (action === 'preview') {
         navigation.navigate('PdfPreview', { htmlContent });
+        setLoadingPdf(false);
+        return;
+      }
+
+      if (action === 'print') {
+        await RNPrint.print({
+          html: htmlContent,
+          fileName,
+        });
         setLoadingPdf(false);
         return;
       }
@@ -242,9 +252,13 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
             </View>
 
             <Button mode="contained" onPress={handleSave} style={styles.button} icon="content-save" disabled={loadingPdf}>{t('save')}</Button>
-            <Button mode="outlined" onPress={() => handlePdfAction('preview')} style={styles.button} icon="file-pdf-box" disabled={loadingPdf}>{t('preview_pdf')}</Button>
-            <Button mode="outlined" onPress={() => handlePdfAction('download')} style={styles.button} icon="download" disabled={loadingPdf}>{t('download')}</Button>
-            <Button mode="outlined" onPress={() => handlePdfAction('share')} style={styles.button} icon="share-variant" disabled={loadingPdf}>{t('share')}</Button>
+            
+            <View style={styles.buttonRow}>
+              <Button mode="outlined" onPress={() => handlePdfAction('preview')} style={styles.halfButton} icon="file-pdf-box" disabled={loadingPdf}>{t('preview_pdf')}</Button>
+              <Button mode="outlined" onPress={() => handlePdfAction('print')} style={styles.halfButton} icon="printer" disabled={loadingPdf}>{t('print')}</Button>
+              <Button mode="outlined" onPress={() => handlePdfAction('download')} style={styles.halfButton} icon="download" disabled={loadingPdf}>{t('download')}</Button>
+              <Button mode="outlined" onPress={() => handlePdfAction('share')} style={styles.halfButton} icon="share-variant" disabled={loadingPdf}>{t('share')}</Button>
+            </View>
           </View>
         )}
       />
@@ -284,6 +298,17 @@ const styles = StyleSheet.create({
   button: { marginTop: 10, paddingVertical: 8 },
   contentPadding: { padding: 20 },
   signatureSwitchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 15, padding: 10, borderRadius: 8, borderWidth: 1 },
+  buttonRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  halfButton: {
+    width: '48%',
+    marginTop: 10,
+    paddingVertical: 8,
+  },
 });
 
 export default DocumentForm;

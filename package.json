@@ -1,6 +1,6 @@
 {
   "name": "factogo",
-  "version": "0.0.1",
+  "version": "1.2.2",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -30,6 +30,7 @@
     "react-native-paper": "^5.13.2",
     "react-native-paper-dates": "^0.22.49",
     "react-native-permissions": "^5.4.2",
+    "react-native-print": "^0.11.0",
     "react-native-safe-area-context": "^5.6.0",
     "react-native-screens": "^4.14.1",
     "react-native-share": "^12.2.0",

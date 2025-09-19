@@ -22,7 +22,6 @@ export const createTables = async (db) => {
   const invoicesQuery = `CREATE TABLE IF NOT EXISTS invoices (id INTEGER PRIMARY KEY AUTOINCREMENT, document_number TEXT, clientName TEXT NOT NULL, date TEXT NOT NULL, items TEXT NOT NULL, total REAL NOT NULL);`;
   const quotesQuery = `CREATE TABLE IF NOT EXISTS quotes (id INTEGER PRIMARY KEY AUTOINCREMENT, document_number TEXT, clientName TEXT NOT NULL, date TEXT NOT NULL, items TEXT NOT NULL, total REAL NOT NULL);`;
   const deliveryNotesQuery = `CREATE TABLE IF NOT EXISTS delivery_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, document_number TEXT, clientName TEXT NOT NULL, date TEXT NOT NULL, items TEXT NOT NULL, total INTEGER NOT NULL, order_reference TEXT, payment_method TEXT);`;
-  const sequencesQuery = `CREATE TABLE IF NOT EXISTS document_sequences (document_type TEXT NOT NULL, period TEXT NOT NULL, last_sequence INTEGER NOT NULL, PRIMARY KEY (document_type, period));`;
 
   try {
     await db.executeSql(usersQuery);
@@ -30,7 +29,6 @@ export const createTables = async (db) => {
     await db.executeSql(invoicesQuery);
     await db.executeSql(quotesQuery);
     await db.executeSql(deliveryNotesQuery);
-    await db.executeSql(sequencesQuery);
   } catch (error) {
     console.error('Error creating tables', error);
   }
@@ -42,26 +40,45 @@ export const getNextDocumentNumber = async (documentType) => {
   const now = new Date();
   const year = now.getFullYear();
   const month = (now.getMonth() + 1).toString().padStart(2, '0');
-  const period = `${year}-${month}`;
+  const periodSuffix = `/${month}/${year}`;
 
-  let nextSequence = 1;
+  // Map documentType to the correct table name
+  const tableNames = {
+    invoice: 'invoices',
+    quote: 'quotes',
+    delivery_note: 'delivery_notes',
+  };
+  const tableName = tableNames[documentType];
+  if (!tableName) {
+    throw new Error(`Invalid document type: ${documentType}`);
+  }
 
-  await db.transaction(async (tx) => {
-    const selectQuery = 'SELECT last_sequence FROM document_sequences WHERE document_type = ? AND period = ?';
-    const [results] = await tx.executeSql(selectQuery, [documentType, period]);
-
-    if (results.rows.length > 0) {
-      nextSequence = results.rows.item(0).last_sequence + 1;
-      const updateQuery = 'UPDATE document_sequences SET last_sequence = ? WHERE document_type = ? AND period = ?';
-      await tx.executeSql(updateQuery, [nextSequence, documentType, period]);
-    } else {
-      const insertQuery = 'INSERT INTO document_sequences (document_type, period, last_sequence) VALUES (?, ?, ?)';
-      await tx.executeSql(insertQuery, [documentType, period, nextSequence]);
-    }
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      // Query to get the document with the highest number for the current period
+      const query = `
+        SELECT document_number FROM ${tableName}
+        WHERE document_number LIKE ?
+        ORDER BY SUBSTR(document_number, 1, 3) DESC
+        LIMIT 1;
+      `;
+      
+      tx.executeSql(query, [`%${periodSuffix}`], (_, { rows }) => {
+        let nextSequence = 1;
+        if (rows.length > 0) {
+          const lastDocumentNumber = rows.item(0).document_number;
+          const lastSequence = parseInt(lastDocumentNumber.split('/')[0], 10);
+          nextSequence = lastSequence + 1;
+        }
+        const formattedSequence = nextSequence.toString().padStart(3, '0');
+        resolve(`${formattedSequence}${periodSuffix}`);
+      },
+      (tx, error) => {
+        console.error(`Error getting next document number for ${documentType}`, error);
+        reject(error);
+      });
+    });
   });
-
-  const formattedSequence = nextSequence.toString().padStart(3, '0');
-  return `${formattedSequence}/${month}/${year}`;
 };
 
 
