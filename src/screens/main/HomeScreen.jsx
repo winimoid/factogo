@@ -34,11 +34,11 @@ const HomeScreen = ({ navigation }) => {
   const layout = useWindowDimensions();
 
   const [index, setIndex] = useState(0);
-  const [routes] = useState([
+  const routes = React.useMemo(() => [
     { key: 'invoices', title: t('invoices') },
     { key: 'quotes', title: t('quotes') },
-    { key: 'delivery_notes', title: t('delivery_notes') },
-  ]);
+    { key: 'delivery_notes', title: t('delivery_notes_short') },
+  ], [t]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -178,7 +178,14 @@ ${t('date')}: ${item.date}`}
   };
 
   const renderTabBar = (props) => (
-    <TabBar {...props} indicatorStyle={{ backgroundColor: colors.primary }} style={{ backgroundColor: colors.surface }} labelStyle={{ color: colors.onSurface, fontWeight: 'bold' }} />
+    <TabBar 
+      {...props} 
+      indicatorStyle={{ backgroundColor: colors.primary }} 
+      style={{ backgroundColor: colors.surface }} 
+      activeColor={colors.primary}
+      inactiveColor={colors.onSurface}
+      labelStyle={{ fontWeight: 'bold' }}
+    />
   );
 
   return (

@@ -102,6 +102,7 @@
   "include_signature_stamp": "Include signature and stamp",
   "delivery_note": "Delivery Note",
   "delivery_notes": "Delivery Notes",
+  "delivery_notes_short": "Deliv. Notes",
   "create_delivery_note": "Create Delivery Note",
   "edit_delivery_note": "Edit Delivery Note",
   "delete_delivery_note": "Delete Delivery Note",

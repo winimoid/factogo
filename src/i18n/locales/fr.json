@@ -102,6 +102,7 @@
   "include_signature_stamp": "Inclure la signature et le cachet",
   "delivery_note": "Bon de livraison",
   "delivery_notes": "Bons de livraison",
+  "delivery_notes_short": "Bons de livr.",
   "create_delivery_note": "Créer un bon de livraison",
   "edit_delivery_note": "Modifier le bon de livraison",
   "delete_delivery_note": "Supprimer le bon de livraison",
