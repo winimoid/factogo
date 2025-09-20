@@ -1,3 +1,4 @@
+import './src/i18n/i18n';
 import React, { useEffect } from 'react';
 import { LanguageProvider } from './src/contexts/LanguageContext';
 import { ThemeProvider } from './src/contexts/ThemeContext';

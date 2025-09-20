@@ -11,6 +11,7 @@ import InvoiceForm from '../screens/main/InvoiceForm';
 import QuoteForm from '../screens/main/QuoteForm';
 import DeliveryNoteForm from '../screens/main/DeliveryNoteForm';
 import PdfPreviewScreen from '../screens/main/PdfPreviewScreen';
+import BackupRestoreScreen from '../screens/main/BackupRestoreScreen';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from 'react-native-paper';
 
@@ -65,35 +66,35 @@ const MainNavigator = () => {
       <Stack.Screen 
         name="InvoiceForm" 
         component={InvoiceForm} 
-        options={{
+        options={() => ({
           title: t('invoice'),
           headerShown: true,
           headerStyle: { backgroundColor: colors.primary },
           headerTintColor: colors.onPrimary,
           headerTitleStyle: { fontWeight: 'bold' },
-        }}
+        })}
       />
       <Stack.Screen 
         name="QuoteForm" 
         component={QuoteForm} 
-        options={{
+        options={() => ({
           title: t('quote'),
           headerShown: true,
           headerStyle: { backgroundColor: colors.primary },
           headerTintColor: colors.onPrimary,
           headerTitleStyle: { fontWeight: 'bold' },
-        }}
+        })}
       />
       <Stack.Screen 
         name="DeliveryNoteForm" 
         component={DeliveryNoteForm} 
-        options={{
+        options={() => ({
           title: t('delivery_note'),
           headerShown: true,
           headerStyle: { backgroundColor: colors.primary },
           headerTintColor: colors.onPrimary,
           headerTitleStyle: { fontWeight: 'bold' },
-        }}
+        })}
       />
       <Stack.Screen 
         name="PdfPreview" 
