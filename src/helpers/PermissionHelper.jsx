@@ -10,11 +10,8 @@ export const requestAppPermissions = async () => {
             PermissionsAndroid.PERMISSIONS.CAMERA,
         ];
 
-        // Ajouter les permissions de stockage selon la version d'Android
-        if (Platform.Version < 33) { // Android 12 (API 32) et inférieur
-            permissions.push(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
-            permissions.push(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE);
-        } else { // Android 13 (API 33) et supérieur
+        // Ajouter les permissions média spécifiques à Android 13+ si nécessaire
+        if (Platform.Version >= 33) {
             permissions.push(PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES);
             permissions.push(PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO);
             permissions.push(PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO);

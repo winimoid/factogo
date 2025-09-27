@@ -1,15 +1,21 @@
-
 import React, { useContext, useState } from 'react';
-import { View, StyleSheet, PermissionsAndroid, Platform, ScrollView } from 'react-native';
+import { View, StyleSheet, Platform, ScrollView } from 'react-native';
 import { Button, useTheme, Card, Title, Paragraph, Portal, Dialog } from 'react-native-paper';
 import { LanguageContext } from '../../contexts/LanguageContext';
+import { ThemeContext } from '../../contexts/ThemeContext';
 import { typography } from '../../styles/typography';
 import RNFS from 'react-native-fs';
-import DocumentPicker from '@react-native-documents/picker';
 import RNRestart from 'react-native-restart';
+import { zip, unzip } from 'react-native-zip-archive';
+import { getSettings, saveSettings } from '../../services/Database';
+import { FileSystem, Dirs } from 'react-native-file-access';
+
+const BACKUP_FILE_NAME = 'FactoGo_backup.fctg';
+const BACKUP_PATH = `${Dirs.DocumentDir}/${BACKUP_FILE_NAME}`;
 
 const BackupRestoreScreen = () => {
-  const { t } = useContext(LanguageContext);
+  const { t, locale, setLanguage } = useContext(LanguageContext);
+  const { isDarkMode, setAppThemeColors, themes } = useContext(ThemeContext);
   const { colors } = useTheme();
   const [dialog, setDialog] = useState({ visible: false, title: '', message: '', actions: [] });
 
@@ -21,110 +27,117 @@ const BackupRestoreScreen = () => {
     setDialog({ ...dialog, visible: false });
   };
 
-  const handleBackup = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-          {
-            title: t('storage_permission_denied'),
-            message: t('storage_permission_denied_message'),
-            buttonPositive: t('ok'),
-          },
-        );
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          createBackup();
-        } else {
-          showDialog(t('storage_permission_denied'), t('storage_permission_denied_message'));
-        }
-      } catch (err) {
-        console.warn(err);
-      }
-    } else {
-      createBackup();
-    }
-  };
-
   const createBackup = async () => {
-    const dbPath = Platform.OS === 'ios' 
-      ? `${RNFS.LibraryDirectoryPath}/LocalDatabase/FactoGo.db`
-      : `/data/data/com.factogo/databases/FactoGo.db`;
-    const date = new Date();
-    const timestamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}_${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}${String(date.getSeconds()).padStart(2, '0')}`;
-    const backupPath = `${RNFS.DownloadDirectoryPath}/FactoGo_backup_${timestamp}.db`;
+    const tempDir = `${RNFS.CachesDirectoryPath}/backup`;
+    const archivePath = `${RNFS.CachesDirectoryPath}/${BACKUP_FILE_NAME}`;
 
     try {
-      await RNFS.copyFile(dbPath, backupPath);
-      showDialog(t('backup.success_title'), t('backup.success_message', { path: backupPath }));
+      const settings = await getSettings();
+      const appSettings = {
+        language: locale,
+        isDarkMode,
+        themeName: themes.find(theme => theme.primary === colors.primary)?.name || 'Default',
+        companyName: settings?.companyName || '',
+        managerName: settings?.managerName || '',
+        description: settings?.description || '',
+        informations: settings?.informations || '',
+      };
+
+      await RNFS.mkdir(tempDir);
+      await RNFS.mkdir(`${tempDir}/images`);
+      await RNFS.mkdir(`${tempDir}/database`);
+      await RNFS.writeFile(`${tempDir}/metadata.json`, JSON.stringify(appSettings, null, 2), 'utf8');
+
+      const dbPath = Platform.OS === 'ios'
+        ? `${RNFS.LibraryDirectoryPath}/LocalDatabase/FactoGo.db`
+        : `${RNFS.DocumentDirectoryPath.replace('/files', '/databases')}/FactoGo.db`;
+
+      await RNFS.copyFile(dbPath, `${tempDir}/database/FactoGo.db`);
+
+      const imagePaths = ['logo', 'signature', 'stamp'];
+      for (const imageName of imagePaths) {
+        if (settings?.[imageName]) {
+          const sourcePath = settings[imageName].replace('file://', '');
+          if (await RNFS.exists(sourcePath)) {
+            await RNFS.copyFile(sourcePath, `${tempDir}/images/${imageName}.png`);
+          }
+        }
+      }
+
+      await zip(tempDir, archivePath);
+
+      const archiveData = await FileSystem.readFile(archivePath, 'base64');
+      await FileSystem.writeFile(BACKUP_PATH, archiveData, 'base64');
+
+      showDialog(t('backup.success_title'), t('backup.success_message', { path: BACKUP_PATH }));
+
     } catch (error) {
       console.error(error);
       showDialog(t('backup.error_title'), t('backup.error_message'));
+    } finally {
+      try { if (await RNFS.exists(tempDir)) await RNFS.unlink(tempDir); } catch {}
+      try { if (await RNFS.exists(archivePath)) await RNFS.unlink(archivePath); } catch {}
     }
   };
 
-  const handleRestore = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-          {
-            title: t('storage_permission_denied'),
-            message: t('storage_permission_denied_message'),
-            buttonPositive: t('ok'),
-          },
-        );
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          pickBackupFile();
-        } else {
-          showDialog(t('storage_permission_denied'), t('storage_permission_denied_message'));
+  const restoreBackup = async () => {
+    const tempDir = `${RNFS.CachesDirectoryPath}/restore`;
+
+    try {
+      const exists = await FileSystem.exists(BACKUP_PATH);
+      if (!exists) {
+        showDialog(t('restore.error_title'), t('Fichier de sauvegarde introuvable.'));
+        return;
+      }
+
+      await unzip(BACKUP_PATH, tempDir);
+
+      const metadataPath = `${tempDir}/metadata.json`;
+      const dbPath = `${tempDir}/database/FactoGo.db`;
+      if (!(await RNFS.exists(metadataPath) && await RNFS.exists(dbPath))) {
+        throw new Error('Fichier de sauvegarde invalide.');
+      }
+
+      const targetDbPath = Platform.OS === 'ios'
+        ? `${RNFS.LibraryDirectoryPath}/LocalDatabase/FactoGo.db`
+        : `${RNFS.DocumentDirectoryPath.replace('/files', '/databases')}/FactoGo.db`;
+
+      await RNFS.copyFile(dbPath, targetDbPath);
+
+      const metadata = JSON.parse(await RNFS.readFile(metadataPath, 'utf8'));
+      const newSettings = {
+        companyName: metadata.companyName,
+        managerName: metadata.managerName,
+        description: metadata.description,
+        informations: metadata.informations,
+      };
+
+      const imageNames = ['logo', 'signature', 'stamp'];
+      for (const imageName of imageNames) {
+        const sourceImagePath = `${tempDir}/images/${imageName}.png`;
+        if (await RNFS.exists(sourceImagePath)) {
+          const destImagePath = `${RNFS.DocumentDirectoryPath}/${Date.now()}_${imageName}.png`;
+          await RNFS.copyFile(sourceImagePath, destImagePath);
+          newSettings[imageName] = destImagePath;
         }
-      } catch (err) {
-        console.warn(err);
       }
-    } else {
-      pickBackupFile();
-    }
-  };
 
-  const pickBackupFile = async () => {
-    try {
-      const res = await DocumentPicker.pick({
-        type: [DocumentPicker.types.allFiles],
-      });
+      await saveSettings(newSettings);
+      setLanguage(metadata.language);
+      const selectedTheme = themes.find(theme => theme.name === metadata.themeName);
+      if (selectedTheme) setAppThemeColors(selectedTheme);
 
-      showDialog(
-        t('restore.confirm_title'),
-        t('restore.confirm_message'),
-        [
-          { text: t('cancel'), onPress: hideDialog },
-          { text: t('ok'), onPress: () => {
-              hideDialog();
-              restoreBackup(res[0].uri);
-            }
-          },
-        ]
-      );
-    } catch (err) {
-      if (!DocumentPicker.isCancel(err)) {
-        showDialog(t('restore.error_title'), t('restore.error_message'));
-      }
-    }
-  };
-
-  const restoreBackup = async (uri) => {
-    const dbPath = Platform.OS === 'ios'
-      ? `${RNFS.LibraryDirectoryPath}/LocalDatabase/FactoGo.db`
-      : `/data/data/com.factogo/databases/FactoGo.db`;
-    try {
-      await RNFS.copyFile(uri, dbPath);
       showDialog(
         t('restore.success_title'),
         t('restore.success_message'),
         [{ text: t('ok'), onPress: () => RNRestart.Restart() }]
       );
+
     } catch (error) {
       console.error(error);
       showDialog(t('restore.error_title'), t('restore.error_message'));
+    } finally {
+      try { if (await RNFS.exists(tempDir)) await RNFS.unlink(tempDir); } catch {}
     }
   };
 
@@ -132,7 +145,6 @@ const BackupRestoreScreen = () => {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Title style={styles.headerTitle}>{t('backupRestore.title')}</Title>
-
         <Card style={styles.card}>
           <Card.Content>
             <Paragraph style={styles.description}>
@@ -140,7 +152,7 @@ const BackupRestoreScreen = () => {
             </Paragraph>
             <Button
               mode="contained"
-              onPress={handleBackup}
+              onPress={createBackup}
               style={styles.button}
               icon="database-export-outline"
               labelStyle={typography.button}
@@ -149,7 +161,7 @@ const BackupRestoreScreen = () => {
             </Button>
             <Button
               mode="contained"
-              onPress={handleRestore}
+              onPress={restoreBackup}
               style={styles.button}
               icon="database-import-outline"
               labelStyle={typography.button}
@@ -159,7 +171,6 @@ const BackupRestoreScreen = () => {
           </Card.Content>
         </Card>
       </ScrollView>
-
       <Portal>
         <Dialog visible={dialog.visible} onDismiss={hideDialog} style={{ borderRadius: 8 }}>
           <Dialog.Title>{dialog.title}</Dialog.Title>
@@ -206,4 +217,3 @@ const styles = StyleSheet.create({
 });
 
 export default BackupRestoreScreen;
-
