@@ -3,7 +3,8 @@ import { View, StyleSheet, FlatList, Platform } from 'react-native';
 import { TextInput, Button, Text, useTheme, IconButton, Card, Title, ActivityIndicator, Portal, Dialog, Paragraph, Switch } from 'react-native-paper';
 import { DatePickerModal } from 'react-native-paper-dates';
 import { LanguageContext } from '../contexts/LanguageContext';
-import { getSettings, getNextDocumentNumber } from '../services/Database';
+import { useStore } from '../contexts/StoreContext';
+import { getNextDocumentNumber, createDocumentForStore, updateDocument } from '../services/DocumentService';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import RNPrint from 'react-native-print';
 import Share from 'react-native-share';
@@ -11,7 +12,7 @@ import fs from 'react-native-fs';
 import { typography } from '../styles/typography';
 import { generatePdfHtml } from '../utils/pdfUtils';
 
-const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
+const DocumentForm = ({ route, navigation, documentType }) => {
   // Common State
   const [clientName, setClientName] = useState('');
   const [date, setDate] = useState(new Date());
@@ -34,7 +35,8 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
 
   const { t, locale } = useContext(LanguageContext);
   const { colors } = useTheme();
-  const { document } = route.params || {};
+  const { activeStore } = useStore();
+  const { document, storeId } = route.params || {};
 
   const isDeliveryNote = useMemo(() => documentType === 'delivery_note', [documentType]);
 
@@ -60,14 +62,14 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
         }
       } else {
         // Creating a new document
-        const newDocNumber = await getNextDocumentNumber(documentType);
+        const newDocNumber = await getNextDocumentNumber(storeId, documentType);
         setOfficialDocumentNumber(newDocNumber);
         setDisplayNumber(newDocNumber);
       }
     };
 
     loadDocument();
-  }, [document, documentType, isDeliveryNote]);
+  }, [document, documentType, isDeliveryNote, storeId]);
 
   const calculateTotals = useCallback(() => {
     const newTotal = items.reduce((acc, item) => acc + item.quantity * item.price, 0);
@@ -110,9 +112,9 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
     }
 
     if (document) {
-      await dbActions.update(document.id, newDocument);
+      await updateDocument(document.id, documentType, newDocument);
     } else {
-      await dbActions.add(newDocument);
+      await createDocumentForStore(storeId, documentType, newDocument);
     }
     navigation.goBack();
   };
@@ -129,8 +131,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
   const handlePdfAction = async (action) => {
     setLoadingPdf(true);
     try {
-      const settings = await getSettings();
-      if (!settings) { return; }
+      if (!activeStore) { return; }
 
       const documentData = {
         id: document?.id,
@@ -143,7 +144,7 @@ const DocumentForm = ({ route, navigation, documentType, dbActions }) => {
         payment_method: paymentMethod,
       };
 
-      const htmlContent = await generatePdfHtml(documentData, documentType, settings, t, locale, includeSignature, colors.primary);
+      const htmlContent = await generatePdfHtml(documentData, documentType, activeStore, t, locale, includeSignature, colors.primary);
       const fileName = `${getDocumentTitle(documentType)}_${displayNumber.replace(/\//g, '-')}`;
       
       if (action === 'preview') {

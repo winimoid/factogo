@@ -12,7 +12,7 @@ Represents a single business location or entity.
   - `ownerUserId` (INTEGER, FOREIGN KEY to Users table)
   - `name` (TEXT, NOT NULL)
   - `logoUrl` (TEXT)
-  - `documentTemplateId` (INTEGER, FOREIGN KEY to InvoiceTemplates table)
+  - `documentTemplateId` (INTEGER, FOREIGN KEY to DocumentTemplates table)
   - `customTexts` (TEXT) - A JSON object for storing custom text snippets (e.g., invoice footer).
   - `status` (TEXT, NOT NULL) - The status of the store (e.g., 'active', 'archived').
 
@@ -47,7 +47,7 @@ Represents the stock of a product at a specific store.
 ## Relationships
 
 - A `User` can own multiple `Stores`.
-- A `Store` has one `InvoiceTemplate`.
-- An `Invoice` belongs to one `Store`.
+- A `Store` has one `DocumentTemplate`.
+- A `Document` belongs to one `Store`.
 - A `Client` belongs to one `Store`.
 - An `Inventory` record links a `Product` to a `Store`.

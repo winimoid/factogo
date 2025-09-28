@@ -3,7 +3,7 @@ import { toWords } from './numberToWords.js';
 import { Platform } from 'react-native';
 
 // This function is the single source of truth for generating document HTML.
-export const generatePdfHtml = async (item, type, settings, t, locale, includeSignature = true, primaryColor) => {
+export const generatePdfHtml = async (item, type, activeStore, t, locale, includeSignature = true, primaryColor) => {
   const loadFontAsBase64 = async (fontName) => {
     try {
       const fontPath = Platform.OS === 'android' ? `fonts/${fontName}.ttf` : `${fs.MainBundlePath}/fonts/${fontName}.ttf`;
@@ -38,9 +38,9 @@ export const generatePdfHtml = async (item, type, settings, t, locale, includeSi
     }
   };
 
-  const logoBase64 = await getBase64Image(settings?.logo);
-  const signatureBase64 = await getBase64Image(settings?.signature);
-  const stampBase64 = await getBase64Image(settings?.stamp);
+  const logoBase64 = await getBase64Image(activeStore?.logoUrl);
+  const signatureBase64 = await getBase64Image(activeStore?.signatureUrl);
+  const stampBase64 = await getBase64Image(activeStore?.stampUrl);
 
   const date = new Date(item.date);
   const formattedDate = `Libreville, ${date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}`;
@@ -164,5 +164,5 @@ export const generatePdfHtml = async (item, type, settings, t, locale, includeSi
     signatureHtml = `<div class="signature-section single"><span class="text-bold">Le Gérant</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div>`;
   }
 
-  return `<html><head><style>${styles}</style></head><body><table class="document-wrapper"><thead><tr><td><div id="page-header"><div id="page-header-content"><div class="header-flex"><div>${logoBase64 ? `<img src="${logoBase64}" class="header-logo" />` : ''}</div><div class="header-company-details"><p>${settings?.description || ''}</p></div></div></div></div></td></tr></thead><tbody><tr><td id="main-content">${headerDetailsHtml}${itemsTableHtml}${totalsHtml}${signatureHtml}</td></tr></tbody><tfoot><tr><td><div id="page-footer"><div id="page-footer-content"><p>${settings?.informations || ''}</p></div></div></td></tr></tfoot></table></body></html>`;
+  return `<html><head><style>${styles}</style></head><body><table class="document-wrapper"><thead><tr><td><div id="page-header"><div id="page-header-content"><div class="header-flex"><div>${logoBase64 ? `<img src="${logoBase64}" class="header-logo" />` : ''}</div><div class="header-company-details"><p>${activeStore?.customTexts || ''}</p></div></div></div></div></td></tr></thead><tbody><tr><td id="main-content">${headerDetailsHtml}${itemsTableHtml}${totalsHtml}${signatureHtml}</td></tr></tbody><tfoot><tr><td><div id="page-footer"><div id="page-footer-content"><p>${activeStore?.customTexts || ''}</p></div></div></td></tr></tfoot></table></body></html>`;
 };

@@ -1,34 +1,50 @@
 import './src/i18n/i18n';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { LanguageProvider } from './src/contexts/LanguageContext';
 import { ThemeProvider } from './src/contexts/ThemeContext';
-import { AuthProvider } from './src/contexts/AuthContext';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { StoreProvider } from './src/contexts/StoreContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import { openDatabase } from './src/services/Database';
+import { initDatabase } from './src/services/Database';
 import { requestAppPermissions } from './src/helpers/PermissionHelper';
 import ThemedStatusBar from './src/components/ThemedStatusBar';
 
-// Open the database when the app starts
-openDatabase();
+const AppContent = () => {
+  const { user } = useAuth();
+  return (
+    <StoreProvider userId={user ? user.id : null}>
+      <AppNavigator />
+    </StoreProvider>
+  );
+};
 
 const App = () => {
-  useEffect(() => {
-    const checkPermissions = async () => {
-      const permissionsGranted = await requestAppPermissions();
+  const [dbReady, setDbReady] = useState(false);
 
-      if (!permissionsGranted) {
-        console.warn("Certaines permissions n'ont pas été accordées");
-      }
+  useEffect(() => {
+    const initializeApp = async () => {
+      await requestAppPermissions();
+      await initDatabase();
+      setDbReady(true);
     };
-    checkPermissions();
+    initializeApp();
   }, []);
+
+  if (!dbReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <LanguageProvider>
       <ThemeProvider>
         <ThemedStatusBar />
         <AuthProvider>
-          <AppNavigator />
+          <AppContent />
         </AuthProvider>
       </ThemeProvider>
     </LanguageProvider>

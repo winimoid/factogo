@@ -12,8 +12,12 @@ import QuoteForm from '../screens/main/QuoteForm';
 import DeliveryNoteForm from '../screens/main/DeliveryNoteForm';
 import PdfPreviewScreen from '../screens/main/PdfPreviewScreen';
 import BackupRestoreScreen from '../screens/main/BackupRestoreScreen';
+import ManageStoresScreen from '../screens/main/ManageStoresScreen';
+import EditStoreScreen from '../screens/main/EditStoreScreen';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from 'react-native-paper';
+import StoreSwitcher from '../components/store/StoreSwitcher';
+import { typography } from '../styles/typography';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -25,7 +29,11 @@ const MainTabs = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false,
+        headerShown: true, // Show header to place the switcher
+        headerTitle: () => <StoreSwitcher />,
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
@@ -102,6 +110,28 @@ const MainNavigator = () => {
         options={{
           headerShown: false, // PdfPreviewScreen has its own Appbar.Header
         }}
+      />
+      <Stack.Screen 
+        name="ManageStores" 
+        component={ManageStoresScreen} 
+        options={() => ({ 
+          title: t('manage_stores'),
+          headerShown: true,
+          headerStyle: { backgroundColor: colors.primary },
+          headerTintColor: colors.onPrimary,
+          headerTitleStyle: { fontWeight: 'bold' },
+        })} 
+      />
+      <Stack.Screen 
+        name="EditStore" 
+        component={EditStoreScreen} 
+        options={() => ({ 
+          title: t('configure_store'),
+          headerShown: true,
+          headerStyle: { backgroundColor: colors.primary },
+          headerTintColor: colors.onPrimary,
+          headerTitleStyle: { fontWeight: 'bold' },
+        })} 
       />
     </Stack.Navigator>
   );

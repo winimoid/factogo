@@ -42,7 +42,7 @@ This plan outlines the implementation of multi-store support, a foundational fea
 **Project Type**: Mobile
 **Performance Goals**: UI interactions should remain at 60 fps; database queries should resolve in < 100ms.
 **Constraints**: Must adhere to existing code style and project structure. No new major dependencies should be introduced without justification.
-**Scale/Scope**: The initial implementation should support up to 50 stores per user.
+**Scale/Scope**: The initial implementation should be tested and validated for up to 50 stores per user. This is not a hard technical limit.
 
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*

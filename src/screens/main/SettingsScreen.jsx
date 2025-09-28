@@ -3,52 +3,43 @@ import { View, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-nat
 import { TextInput, Button, Text, Switch, useTheme, Card, Title, Paragraph, Snackbar, Divider, ActivityIndicator, Portal, Dialog } from 'react-native-paper';
 import { LanguageContext } from '../../contexts/LanguageContext';
 import { ThemeContext } from '../../contexts/ThemeContext';
-import { saveSettings, getSettings } from '../../services/Database';
+import { useStore } from '../../contexts/StoreContext';
+import { updateStore } from '../../services/StoreService';
 import { launchImageLibrary } from 'react-native-image-picker';
 import fs from 'react-native-fs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { typography } from '../../styles/typography';
 
-const SettingsScreen = () => {
-  const [companyName, setCompanyName] = useState('');
+const SettingsScreen = ({ navigation }) => {
+  const { t, setLanguage, locale } = useContext(LanguageContext);
+  const { toggleTheme, isDarkMode, setAppThemeColors, themes, currentThemeColors } = useContext(ThemeContext);
+  const { activeStore, switchStore } = useStore();
+  const { colors } = useTheme();
+
+  const [storeName, setStoreName] = useState('');
   const [logo, setLogo] = useState(null);
-  const [managerName, setManagerName] = useState('');
-  const [signature, setSignature] = useState(null);
-  const [stamp, setStamp] = useState(null);
-  const [description, setDescription] = useState('');
-  const [informations, setInformations] = useState('');
+  const [customTexts, setCustomTexts] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [dialogVisible, setDialogVisible] = useState(false);
   const [imageToDelete, setImageToDelete] = useState({ setter: null });
 
-  const { t, setLanguage, locale } = useContext(LanguageContext);
-  const { toggleTheme, isDarkMode, setAppThemeColors, themes, currentThemeColors } = useContext(ThemeContext);
-  const { colors } = useTheme();
-
   useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    const settings = await getSettings();
-    if (settings) {
-      setCompanyName(settings.companyName);
-      setLogo(settings.logo);
-      setManagerName(settings.managerName);
-      setSignature(settings.signature);
-      setStamp(settings.stamp);
-      setDescription(settings.description);
-      setInformations(settings.informations);
+    if (activeStore) {
+      setStoreName(activeStore.name);
+      setLogo(activeStore.logoUrl);
+      setCustomTexts(activeStore.customTexts);
     }
-  };
+  }, [activeStore]);
 
   const handleSave = async () => {
+    if (!activeStore) return;
     setLoading(true);
     try {
-      const settings = { companyName, logo, managerName, signature, stamp, description, informations };
-      await saveSettings(settings);
+      const updatedStore = { ...activeStore, name: storeName, logoUrl: logo, customTexts };
+      await updateStore(activeStore.storeId, updatedStore);
+      switchStore(updatedStore); // Update the active store in the context
       setSnackbarVisible(true);
     } finally {
       setLoading(false);
@@ -113,35 +104,17 @@ const SettingsScreen = () => {
             <Title style={styles.cardTitle}>{t('company_information')}</Title>
             <TextInput
               label={t('company_name')}
-              value={companyName}
-              onChangeText={setCompanyName}
+              value={storeName}
+              onChangeText={setStoreName}
               style={styles.input}
               mode="outlined"
               labelStyle={typography.body}
               inputStyle={typography.body}
             />
             <TextInput
-              label={t('manager_name')}
-              value={managerName}
-              onChangeText={setManagerName}
-              style={styles.input}
-              mode="outlined"
-              labelStyle={typography.body}
-              inputStyle={typography.body}
-            />
-            <TextInput
-              label={t('description')}
-              value={description}
-              onChangeText={setDescription}
-              style={styles.input}
-              mode="outlined"
-              labelStyle={typography.body}
-              inputStyle={typography.body}
-            />
-            <TextInput
-              label={t('informations')}
-              value={informations}
-              onChangeText={setInformations}
+              label={t('custom_texts_json')}
+              value={customTexts}
+              onChangeText={setCustomTexts}
               style={styles.input}
               mode="outlined"
               labelStyle={typography.body}
@@ -149,9 +122,20 @@ const SettingsScreen = () => {
             />
 
             {renderImagePicker('logo', logo, setLogo, 'image-plus')}
-            {renderImagePicker('signature', signature, setSignature, 'signature-freehand')}
-            {renderImagePicker('stamp', stamp, setStamp, 'seal')}
 
+          </Card.Content>
+        </Card>
+
+        <Card style={styles.card}>
+          <Card.Content>
+            <Title style={styles.cardTitle}>{t('store_management')}</Title>
+            <Button
+              icon="store"
+              mode="contained"
+              onPress={() => navigation.navigate('ManageStores')}
+            >
+              {t('manage_stores')}
+            </Button>
           </Card.Content>
         </Card>
 
@@ -229,7 +213,7 @@ const SettingsScreen = () => {
       </Snackbar>
 
       <Portal>
-        <Dialog visible={dialogVisible} onDismiss={hideDialog} style={{ borderRadius: 8}}>
+        <Dialog visible={dialogVisible} onDismiss={hideDialog} style={{ borderRadius: 8 }}>
           <Dialog.Title>{t('delete_image_title')}</Dialog.Title>
           <Dialog.Content>
             <Paragraph>{t('delete_image_confirm')}</Paragraph>

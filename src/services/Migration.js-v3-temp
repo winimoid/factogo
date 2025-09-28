@@ -1,0 +1,12 @@
+
+// In a real scenario, this would be added to the `migrations` array in `Migration.js`
+
+const migrationV3 = {
+  version: 3,
+  queries: [
+    `ALTER TABLE stores ADD COLUMN signatureUrl TEXT;`,
+    `ALTER TABLE stores ADD COLUMN stampUrl TEXT;`,
+  ],
+};
+
+// For the purpose of this simulation, I will now directly modify Migration.js

@@ -4,12 +4,11 @@ import { Text, Card, IconButton, List, Dialog, Portal, Button, useTheme, Activit
 import { useFocusEffect } from '@react-navigation/native';
 import { TabView, TabBar } from 'react-native-tab-view';
 import { LanguageContext } from '../../contexts/LanguageContext';
+import { useStore } from '../../contexts/StoreContext';
 import { 
-  getInvoices, deleteInvoice,
-  getQuotes, deleteQuote,
-  getDeliveryNotes, deleteDeliveryNote,
-  getSettings
-} from '../../services/Database';
+  getDocumentsForStore,
+  deleteDocument
+} from '../../services/DocumentService';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import Share from 'react-native-share';
 import fs from 'react-native-fs';
@@ -31,6 +30,7 @@ const HomeScreen = ({ navigation }) => {
 
   const { t, locale } = useContext(LanguageContext);
   const { colors } = useTheme();
+  const { activeStore } = useStore();
   const layout = useWindowDimensions();
 
   const [index, setIndex] = useState(0);
@@ -41,18 +41,23 @@ const HomeScreen = ({ navigation }) => {
   ], [t]);
 
   const loadData = useCallback(async () => {
+    if (!activeStore) return;
     setLoading(true);
     try {
-      const [invoicesData, quotesData, deliveryNotesData] = await Promise.all([getInvoices(), getQuotes(), getDeliveryNotes()]);
+      const [invoicesData, quotesData, deliveryNotesData] = await Promise.all([
+        getDocumentsForStore(activeStore.storeId, 'invoice'),
+        getDocumentsForStore(activeStore.storeId, 'quote'),
+        getDocumentsForStore(activeStore.storeId, 'delivery_note')
+      ]);
       setInvoices(invoicesData);
       setQuotes(quotesData);
       setDeliveryNotes(deliveryNotesData);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeStore]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData, activeStore]));
 
   const showDeleteDialog = (item, type) => {
     setItemToDelete(item);
@@ -64,12 +69,7 @@ const HomeScreen = ({ navigation }) => {
 
   const confirmDelete = async () => {
     if (itemToDelete && itemTypeToDelete) {
-      const deleteActions = {
-        invoice: deleteInvoice,
-        quote: deleteQuote,
-        delivery_note: deleteDeliveryNote
-      };
-      await deleteActions[itemTypeToDelete](itemToDelete.id);
+      await deleteDocument(itemToDelete.id, itemTypeToDelete);
       loadData();
       hideDeleteDialog();
     }
@@ -89,14 +89,13 @@ const HomeScreen = ({ navigation }) => {
   }, [searchQuery, sortOrder]);
 
   const handlePdfAction = async (action, item, type) => {
-    const settings = await getSettings();
-    if (!settings) {
+    if (!activeStore) {
       setDialogVisible(true);
       setDialogMessage(t('settings_not_saved_pdf_alert'));
       return;
     }
     // Always include signature when generating from home screen
-    const html = await generatePdfHtml(item, type, settings, t, locale, true);
+    const html = await generatePdfHtml(item, type, activeStore, t, locale, true);
     const fileName = `${type}_${item.document_number.replace(/\//g, '-')}`;
     const options = { html, fileName, directory: 'Documents' };
 

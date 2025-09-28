@@ -2,11 +2,17 @@ import React, { useContext } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Button, useTheme, Title } from 'react-native-paper';
 import { LanguageContext } from '../../contexts/LanguageContext';
+import { useStore } from '../../contexts/StoreContext';
 import { typography } from '../../styles/typography';
 
 const NewDocumentScreen = ({ navigation }) => {
   const { t } = useContext(LanguageContext);
   const { colors } = useTheme();
+  const { activeStore } = useStore();
+
+  const navigateToForm = (formName) => {
+    navigation.navigate(formName, { document: null, storeId: activeStore?.storeId });
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -14,30 +20,33 @@ const NewDocumentScreen = ({ navigation }) => {
 
       <Button
         mode="contained"
-        onPress={() => navigation.navigate('InvoiceForm', { document: null })}
+        onPress={() => navigateToForm('InvoiceForm')}
         style={styles.button}
         icon="file-document-outline"
         labelStyle={typography.button}
+        disabled={!activeStore}
       >
         {t('create_invoice')}
       </Button>
 
       <Button
         mode="contained"
-        onPress={() => navigation.navigate('QuoteForm', { document: null })}
+        onPress={() => navigateToForm('QuoteForm')}
         style={styles.button}
         icon="file-document-edit-outline"
         labelStyle={typography.button}
+        disabled={!activeStore}
       >
         {t('create_quote')}
       </Button>
 
       <Button
         mode="contained"
-        onPress={() => navigation.navigate('DeliveryNoteForm', { document: null })}
+        onPress={() => navigateToForm('DeliveryNoteForm')}
         style={styles.button}
         icon="truck-delivery-outline"
         labelStyle={typography.button}
+        disabled={!activeStore}
       >
         {t('create_delivery_note')}
       </Button>

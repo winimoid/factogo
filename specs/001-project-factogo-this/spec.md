@@ -3,7 +3,7 @@
 **Feature Branch**: `001-project-factogo-this`
 **Created**: 2025-09-27
 **Status**: Draft
-**Input**: User description: "Project: Factogo This is a React Native invoicing mobile application built with JavaScript. The current scope (based on gemini.md): - Invoicing system - Theming (light/dark) via Context API - Internationalization (French/English) using i18n with JSON translation files - React Navigation for authentication and main flows - Project structured with src/components, src/screens, src/services, src/utils, etc. 📌 Current limitation: supports only a single store (mono-boutique). 🎯 New goals: 1. Multi-store (multi-boutique) support: - Each store has its own configuration: name, document template - The owner can manage several stores and switch between them in-app. - Documents must use the correct template depending on the active store. 2. Future roadmap: - Add stock management per store (products, inventory, movements, alerts). - Extend reporting and analytics across stores. Constraints and principles: - Maintain React Native best practices. - Keep FR/EN i18n support for all new features. - Follow Context API for global state (no Redux). - Reuse the existing project structure (src/components, src/screens, etc.). - Make it easy to scale to additional stores without rewriting core logic. Expected output: - Specification of new data models (Store, InvoiceTemplate, Product, etc.). - UI/UX flow for multi-store selection and invoice generation. - Step-by-step migration plan from mono-store to multi-store. - Roadmap for stock management integration."
+**Input**: User description: "Project: Factogo This is a React Native invoicing mobile application built with JavaScript. The current scope (based on gemini.md): - Invoicing system - Theming (light/dark) via Context API - Internationalization (French/English) using i18n with JSON translation files - React Navigation for authentication and main flows - Project structured with src/components, src/screens, src/services, src/utils, etc. 📌 Current limitation: supports only a single store (mono-boutique). 🎯 New goals: 1. Multi-store (multi-boutique) support: - Each store has its own configuration: name, document template - The owner can manage several stores and switch between them in-app. - Documents must use the correct template depending on the active store. 2. Future roadmap: - Add stock management per store (products, inventory, movements, alerts). - Extend reporting and analytics across stores. Constraints and principles: - Maintain React Native best practices. - Keep FR/EN i18n support for all new features. - Follow Context API for global state (no Redux). - Reuse the existing project structure (src/components, src/screens, etc.). - Make it easy to scale to additional stores without rewriting core logic. Expected output: - Specification of new data models (Store, DocumentTemplate, Product, etc.). - UI/UX flow for multi-store selection and invoice generation. - Step-by-step migration plan from mono-store to multi-store. - Roadmap for stock management integration."
 
 ---
 
@@ -36,7 +36,7 @@ As a business owner, I want to manage multiple stores within the Factogo applica
 ### Edge Cases
 - When a user tries to delete a store with existing invoices, the store is soft-deleted (marked as 'archived') to preserve historical data.
 - If a store's logo or invoice template is missing, the system MUST block document generation and show an error.
-- What is the expected behavior for a user with a very large number of stores? (e.g., 100+).
+- For a large number of stores (e.g., >20), the store switcher UI MUST include a search/filter bar to allow for efficient selection.
 
 ## Requirements *(mandatory)*
 
@@ -68,7 +68,7 @@ As a business owner, I want to manage multiple stores within the Factogo applica
 This section outlines the steps to migrate the application from a single-store to a multi-store architecture.
 
 1.  **Database Schema Update**:
-    - Introduce the new `Stores` and `InvoiceTemplates` tables.
+    - Introduce the new `Stores` and `DocumentTemplates` tables.
     - Add a `storeId` foreign key column to all existing tables that should be store-specific (e.g., `Invoices`, `Clients`, etc.).
 2.  **Data Migration Script**:
     - Create a script that runs once to perform the data transition.
