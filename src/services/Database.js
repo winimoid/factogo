@@ -1,5 +1,6 @@
 import SQLite from 'react-native-sqlite-storage';
 import { runMigrations } from './Migration';
+import { seedDefaultTemplates } from './DocumentTemplateService';
 
 SQLite.DEBUG(true);
 SQLite.enablePromise(true);
@@ -23,6 +24,7 @@ export const initDatabase = async () => {
       console.log("Database opened, running migrations...");
       await runMigrations(connection);
       console.log("Migrations complete.");
+      await seedDefaultTemplates(connection);
       db = connection;
       return db;
     } catch (error) {

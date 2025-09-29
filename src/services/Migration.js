@@ -44,6 +44,14 @@ const migrations = [
       `ALTER TABLE stores ADD COLUMN stampUrl TEXT;`,
     ],
   },
+  {
+    version: 6,
+    queries: [
+      `INSERT INTO document_templates (templateId, name, htmlContent) 
+       SELECT 3, 'Commercial', 'Commercial-style template' 
+       WHERE NOT EXISTS (SELECT 1 FROM document_templates WHERE templateId = 3);`,
+    ],
+  },
 ];
 
 export const runMigrations = async (db) => {

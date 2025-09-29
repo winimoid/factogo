@@ -11,51 +11,30 @@ import { themes } from '../constants/themes';
 
 export const ThemeContext = createContext();
 
+// This complete font configuration ensures that all variants of text
+// used by React Native Paper components are mapped to the correct "Outfit" font file.
 const fontConfig = {
-  android: {
-    regular: {
-      fontFamily: 'Outfit-Regular',
-      fontWeight: 'normal',
-    },
-    medium: {
-      fontFamily: 'Outfit-Medium',
-      fontWeight: 'normal',
-    },
-    light: {
-      fontFamily: 'Outfit-Light',
-      fontWeight: 'normal',
-    },
-    thin: {
-      fontFamily: 'Outfit-Thin',
-      fontWeight: 'normal',
-    },
-    bold: {
-      fontFamily: 'Outfit-Bold',
-      fontWeight: 'bold',
-    },
+  web: {
+    regular: { fontFamily: 'Outfit-Regular', fontWeight: '400' },
+    medium: { fontFamily: 'Outfit-Medium', fontWeight: '500' },
+    light: { fontFamily: 'Outfit-Light', fontWeight: '300' },
+    thin: { fontFamily: 'Outfit-Thin', fontWeight: '100' },
+    bold: { fontFamily: 'Outfit-Bold', fontWeight: '700' },
   },
   ios: {
-    regular: {
-      fontFamily: 'Outfit-Regular',
-      fontWeight: 'normal',
-    },
-    medium: {
-      fontFamily: 'Outfit-Medium',
-      fontWeight: 'normal',
-    },
-    light: {
-      fontFamily: 'Outfit-Light',
-      fontWeight: 'normal',
-    },
-    thin: {
-      fontFamily: 'Outfit-Thin',
-      fontWeight: 'normal',
-    },
-    bold: {
-      fontFamily: 'Outfit-Bold',
-      fontWeight: 'bold',
-    },
+    regular: { fontFamily: 'Outfit-Regular', fontWeight: '400' },
+    medium: { fontFamily: 'Outfit-Medium', fontWeight: '500' },
+    light: { fontFamily: 'Outfit-Light', fontWeight: '300' },
+    thin: { fontFamily: 'Outfit-Thin', fontWeight: '100' },
+    bold: { fontFamily: 'Outfit-Bold', fontWeight: '700' },
   },
+  android: {
+    regular: { fontFamily: 'Outfit-Regular', fontWeight: 'normal' },
+    medium: { fontFamily: 'Outfit-Medium', fontWeight: 'normal' },
+    light: { fontFamily: 'Outfit-Light', fontWeight: 'normal' },
+    thin: { fontFamily: 'Outfit-Thin', fontWeight: 'normal' },
+    bold: { fontFamily: 'Outfit-Bold', fontWeight: 'normal' },
+  }
 };
 
 const AppTheme = (colors) => ({

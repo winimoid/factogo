@@ -106,7 +106,12 @@ const DocumentForm = ({ route, navigation, documentType }) => {
     };
 
     if (isDeliveryNote) {
-      newDocument = { ...newDocument, total: totalQuantity, orderReference, paymentMethod };
+      newDocument = { 
+        ...newDocument, 
+        total: totalQuantity, 
+        order_reference: orderReference, 
+        payment_method: paymentMethod 
+      };
     } else {
       newDocument = { ...newDocument, total };
     }
@@ -230,7 +235,7 @@ const DocumentForm = ({ route, navigation, documentType }) => {
             <Card style={styles.card} elevation={4}>
               <Card.Content>
                 <Title style={styles.cardTitle}>{t('items')}</Title>
-                <Button onPress={handleAddItem} mode="outlined" icon="plus-circle-outline" style={styles.addItemButton}>{t('add_item')}</Button>
+                <Button onPress={handleAddItem} mode="outlined" icon="plus-circle-outline" style={styles.addItemButton} labelStyle={styles.buttonLabel}>{t('add_item')}</Button>
               </Card.Content>
             </Card>
           </View>
@@ -242,7 +247,7 @@ const DocumentForm = ({ route, navigation, documentType }) => {
                 {isDeliveryNote ? (
                   <Text style={styles.total}>{t('total_quantity')}: {totalQuantity}</Text>
                 ) : (
-                  <Text style={styles.total}>{t('total')}: {total.toFixed(2)}</Text>
+                  <Text style={styles.total}>{t('total')}: {total.toLocaleString(locale)}</Text>
                 )}
               </Card.Content>
             </Card>
@@ -252,13 +257,13 @@ const DocumentForm = ({ route, navigation, documentType }) => {
               <Switch value={includeSignature} onValueChange={setIncludeSignature} />
             </View>
 
-            <Button mode="contained" onPress={handleSave} style={styles.button} icon="content-save" disabled={loadingPdf}>{t('save')}</Button>
+            <Button mode="contained" onPress={handleSave} style={styles.button} icon="content-save" disabled={loadingPdf} labelStyle={styles.buttonLabel}>{t('save')}</Button>
             
             <View style={styles.buttonRow}>
-              <Button mode="outlined" onPress={() => handlePdfAction('preview')} style={styles.halfButton} icon="file-pdf-box" disabled={loadingPdf}>{t('preview_pdf')}</Button>
-              <Button mode="outlined" onPress={() => handlePdfAction('print')} style={styles.halfButton} icon="printer" disabled={loadingPdf}>{t('print')}</Button>
-              <Button mode="outlined" onPress={() => handlePdfAction('download')} style={styles.halfButton} icon="download" disabled={loadingPdf}>{t('download')}</Button>
-              <Button mode="outlined" onPress={() => handlePdfAction('share')} style={styles.halfButton} icon="share-variant" disabled={loadingPdf}>{t('share')}</Button>
+              <Button mode="outlined" onPress={() => handlePdfAction('preview')} style={styles.halfButton} icon="file-pdf-box" disabled={loadingPdf} labelStyle={styles.buttonLabel}>{t('preview_pdf')}</Button>
+              <Button mode="outlined" onPress={() => handlePdfAction('print')} style={styles.halfButton} icon="printer" disabled={loadingPdf} labelStyle={styles.buttonLabel}>{t('print')}</Button>
+              <Button mode="outlined" onPress={() => handlePdfAction('download')} style={styles.halfButton} icon="download" disabled={loadingPdf} labelStyle={styles.buttonLabel}>{t('download')}</Button>
+              <Button mode="outlined" onPress={() => handlePdfAction('share')} style={styles.halfButton} icon="share-variant" disabled={loadingPdf} labelStyle={styles.buttonLabel}>{t('share')}</Button>
             </View>
           </View>
         )}
@@ -278,9 +283,9 @@ const DocumentForm = ({ route, navigation, documentType }) => {
 
       <Portal>
         <Dialog visible={downloadDialogVisible} onDismiss={() => setDownloadDialogVisible(false)} style={{ borderRadius: 8}}>
-          <Dialog.Title>{t('download_complete')}</Dialog.Title>
-          <Dialog.Content><Paragraph>{t('download_message', { documentType: getDocumentTitle(documentType), path: downloadPath })}</Paragraph></Dialog.Content>
-          <Dialog.Actions><Button onPress={() => setDownloadDialogVisible(false)}>{t('dismiss')}</Button></Dialog.Actions>
+          <Dialog.Title style={styles.dialogTitle}>{t('download_complete')}</Dialog.Title>
+          <Dialog.Content><Paragraph style={styles.dialogParagraph}>{t('download_message', { documentType: getDocumentTitle(documentType), path: downloadPath })}</Paragraph></Dialog.Content>
+          <Dialog.Actions><Button labelStyle={styles.buttonLabel} onPress={() => setDownloadDialogVisible(false)}>{t('dismiss')}</Button></Dialog.Actions>
         </Dialog>
       </Portal>
     </View>
@@ -291,12 +296,13 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   card: { marginBottom: 20, borderRadius: 8 },
   cardTitle: { ...typography.h3, marginBottom: 15 },
-  input: { marginBottom: 15 },
+  input: { marginBottom: 15, fontFamily: 'Outfit-Regular' },
   itemContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, padding: 8 },
-  itemInput: { flex: 1, marginHorizontal: 2 },
+  itemInput: { flex: 1, marginHorizontal: 2, fontFamily: 'Outfit-Regular' },
   addItemButton: { marginTop: 10, marginBottom: 10 },
   total: { ...typography.bodyBold, textAlign: 'right', marginVertical: 10 },
   button: { marginTop: 10, paddingVertical: 8 },
+  buttonLabel: { fontFamily: 'Outfit-SemiBold', fontSize: 16 },
   contentPadding: { padding: 20 },
   signatureSwitchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 15, padding: 10, borderRadius: 8, borderWidth: 1 },
   buttonRow: {
@@ -310,6 +316,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingVertical: 8,
   },
+  dialogTitle: { ...typography.h3 },
+  dialogParagraph: { ...typography.body },
 });
 
 export default DocumentForm;

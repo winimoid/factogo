@@ -1,6 +1,6 @@
 import React, { useState, useContext, useCallback } from 'react';
 import { View, FlatList, StyleSheet, useWindowDimensions, Platform } from 'react-native';
-import { Text, Card, IconButton, List, Dialog, Portal, Button, useTheme, ActivityIndicator, TextInput, SegmentedButtons, Title } from 'react-native-paper';
+import { Text, Card, IconButton, List, Dialog, Portal, Button, useTheme, ActivityIndicator, TextInput, SegmentedButtons, Title, Paragraph } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { TabView, TabBar } from 'react-native-tab-view';
 import { LanguageContext } from '../../contexts/LanguageContext';
@@ -96,6 +96,12 @@ const HomeScreen = ({ navigation }) => {
     }
     // Always include signature when generating from home screen
     const html = await generatePdfHtml(item, type, activeStore, t, locale, true);
+
+    if (action === 'preview') {
+      navigation.navigate('PdfPreview', { htmlContent: html });
+      return;
+    }
+
     const fileName = `${type}_${item.document_number.replace(/\//g, '-')}`;
     const options = { html, fileName, directory: 'Documents' };
 
@@ -140,7 +146,7 @@ const HomeScreen = ({ navigation }) => {
     return (
       <Card style={styles.card} elevation={4}>
         <List.Item
-          title={`${t(type)} N° ${item.document_number}`}
+          title={`${t(type)} ${t('document_number_prefix')} ${item.document_number}`}
           description={`${t('client')}: ${item.clientName}
 ${t('date')}: ${item.date}`}
           left={props => <List.Icon {...props} icon={iconMap[type]} />}
@@ -148,6 +154,7 @@ ${t('date')}: ${item.date}`}
           descriptionStyle={styles.listItemDescription}
         />
         <Card.Actions style={styles.cardActions}>
+          <IconButton icon="file-eye-outline" onPress={() => handlePdfAction('preview', item, type)} size={20} />
           <IconButton icon="pencil-outline" onPress={() => navigateToForm(type, item)} size={20} />
           <IconButton icon="download" onPress={() => handlePdfAction('download', item, type)} size={20} />
           <IconButton icon="share-variant" onPress={() => handlePdfAction('share', item, type)} size={20} />
@@ -183,14 +190,14 @@ ${t('date')}: ${item.date}`}
       style={{ backgroundColor: colors.surface }} 
       activeColor={colors.primary}
       inactiveColor={colors.onSurface}
-      labelStyle={{ fontWeight: 'bold' }}
+      labelStyle={{ fontFamily: 'Outfit-SemiBold' }}
     />
   );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Title style={styles.headerTitle}>{t('your_documents')}</Title>
-      <TextInput label={t('search_documents')} value={searchQuery} onChangeText={setSearchQuery} mode="outlined" style={styles.searchInput} left={<TextInput.Icon icon="magnify" />} />
+      <TextInput label={t('search_documents')} value={searchQuery} onChangeText={setSearchQuery} mode="outlined" style={styles.searchInput} left={<TextInput.Icon icon="magnify" />} labelStyle={typography.body} inputStyle={typography.body} />
       <View style={styles.sortContainer}>
         <Text style={styles.sortLabel}>{t('sort_by')}</Text>
         <SegmentedButtons value={sortOrder} onValueChange={setSortOrder} buttons={[{ value: 'date_newest', label: t('date_newest') }, { value: 'date_oldest', label: t('date_oldest') }]} style={styles.sortButtons} />
@@ -204,17 +211,17 @@ ${t('date')}: ${item.date}`}
 
       <Portal>
         <Dialog visible={deleteDialogVisible} onDismiss={hideDeleteDialog} style={{ borderRadius: 8}}>
-          <Dialog.Title>{t('confirm_deletion')}</Dialog.Title>
-          <Dialog.Content><Text>{t('delete_confirmation_message', { type: t(itemTypeToDelete) })}</Text></Dialog.Content>
+          <Dialog.Title style={styles.dialogTitle}>{t('confirm_deletion')}</Dialog.Title>
+          <Dialog.Content><Paragraph style={styles.dialogParagraph}>{t('delete_confirmation_message', { type: t(itemTypeToDelete) })}</Paragraph></Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={hideDeleteDialog}>{t('cancel')}</Button>
-            <Button onPress={confirmDelete}>{t('delete')}</Button>
+            <Button onPress={hideDeleteDialog} labelStyle={typography.button}>{t('cancel')}</Button>
+            <Button onPress={confirmDelete} labelStyle={typography.button}>{t('delete')}</Button>
           </Dialog.Actions>
         </Dialog>
         <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)} style={{ borderRadius: 8}}>
-          <Dialog.Title>{t('information')}</Dialog.Title>
-          <Dialog.Content><Text>{dialogMessage}</Text></Dialog.Content>
-          <Dialog.Actions><Button onPress={() => setDialogVisible(false)}>{t('ok')}</Button></Dialog.Actions>
+          <Dialog.Title style={styles.dialogTitle}>{t('information')}</Dialog.Title>
+          <Dialog.Content><Paragraph style={styles.dialogParagraph}>{dialogMessage}</Paragraph></Dialog.Content>
+          <Dialog.Actions><Button onPress={() => setDialogVisible(false)} labelStyle={typography.button}>{t('ok')}</Button></Dialog.Actions>
         </Dialog>
       </Portal>
     </View>
@@ -232,8 +239,10 @@ const styles = StyleSheet.create({
   listContentContainer: { paddingBottom: 20 },
   searchInput: { marginHorizontal: 10, marginBottom: 15 },
   sortContainer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 10, marginBottom: 15 },
-  sortLabel: { fontWeight: 'bold', marginRight: 10 },
-  sortButtons: { flex: 1 },
+  sortLabel: { ...typography.body, fontWeight: 'bold', marginRight: 10 },
+  sortButtons: { ...typography.button, flex: 1 },
+  dialogTitle: { ...typography.h3 },
+  dialogParagraph: { ...typography.body },
 });
 
 export default HomeScreen;

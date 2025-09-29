@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useCallback } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ThemeContext } from '../contexts/ThemeContext';
@@ -14,6 +14,8 @@ import PdfPreviewScreen from '../screens/main/PdfPreviewScreen';
 import BackupRestoreScreen from '../screens/main/BackupRestoreScreen';
 import ManageStoresScreen from '../screens/main/ManageStoresScreen';
 import EditStoreScreen from '../screens/main/EditStoreScreen';
+import ManageTemplatesScreen from '../screens/main/ManageTemplatesScreen';
+import EditTemplateScreen from '../screens/main/EditTemplateScreen';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from 'react-native-paper';
 import StoreSwitcher from '../components/store/StoreSwitcher';
@@ -26,11 +28,17 @@ const MainTabs = () => {
   const { t } = useContext(LanguageContext);
   const { colors } = useTheme();
 
+  // By wrapping the headerTitle component in useCallback, we ensure that it's not
+  // re-created on every render, which preserves the internal state of the StoreSwitcher.
+  const headerTitleComponent = useCallback((props) => {
+    return <StoreSwitcher {...props} />;
+  }, []);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: true, // Show header to place the switcher
-        headerTitle: () => <StoreSwitcher />,
+        headerTitle: headerTitleComponent,
         headerStyle: {
           backgroundColor: colors.background,
         },
@@ -54,6 +62,9 @@ const MainTabs = () => {
         tabBarStyle: {
           backgroundColor: colors.background,
         },
+        tabBarLabelStyle: {
+          fontFamily: 'Outfit-Regular',
+        },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: t('home') }} />
@@ -69,7 +80,13 @@ const MainNavigator = () => {
   const { colors } = useTheme();
 
   return (
-    <Stack.Navigator>
+    <Stack.Navigator 
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.primary },
+        headerTintColor: colors.onPrimary,
+        headerTitleStyle: { fontFamily: 'Outfit-Bold' },
+      }}
+    >
       <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
       <Stack.Screen 
         name="InvoiceForm" 
@@ -77,9 +94,6 @@ const MainNavigator = () => {
         options={() => ({
           title: t('invoice'),
           headerShown: true,
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: colors.onPrimary,
-          headerTitleStyle: { fontWeight: 'bold' },
         })}
       />
       <Stack.Screen 
@@ -88,9 +102,6 @@ const MainNavigator = () => {
         options={() => ({
           title: t('quote'),
           headerShown: true,
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: colors.onPrimary,
-          headerTitleStyle: { fontWeight: 'bold' },
         })}
       />
       <Stack.Screen 
@@ -99,9 +110,6 @@ const MainNavigator = () => {
         options={() => ({
           title: t('delivery_note'),
           headerShown: true,
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: colors.onPrimary,
-          headerTitleStyle: { fontWeight: 'bold' },
         })}
       />
       <Stack.Screen 
@@ -117,9 +125,6 @@ const MainNavigator = () => {
         options={() => ({ 
           title: t('manage_stores'),
           headerShown: true,
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: colors.onPrimary,
-          headerTitleStyle: { fontWeight: 'bold' },
         })} 
       />
       <Stack.Screen 
@@ -128,9 +133,22 @@ const MainNavigator = () => {
         options={() => ({ 
           title: t('configure_store'),
           headerShown: true,
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: colors.onPrimary,
-          headerTitleStyle: { fontWeight: 'bold' },
+        })} 
+      />
+      <Stack.Screen 
+        name="ManageTemplates" 
+        component={ManageTemplatesScreen} 
+        options={() => ({ 
+          title: t('manage_templates'),
+          headerShown: true,
+        })} 
+      />
+      <Stack.Screen 
+        name="EditTemplate" 
+        component={EditTemplateScreen} 
+        options={() => ({ 
+          title: t('configure_template'),
+          headerShown: true,
         })} 
       />
     </Stack.Navigator>

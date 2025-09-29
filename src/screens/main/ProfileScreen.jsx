@@ -10,7 +10,7 @@ const ProfileScreen = () => {
   const { colors } = useTheme();
   const { user, setIsAuthenticated } = useContext(AuthContext);
 
-  const appVersion = '1.2.2';
+  const appVersion = '2.1';
 
   const handleLogout = () => {
     setIsAuthenticated(false);

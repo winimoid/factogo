@@ -14,7 +14,14 @@ const AuthNavigator = () => {
   const { colors } = useTheme();
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        headerStyle: { backgroundColor: colors.primary },
+        headerTintColor: colors.onPrimary,
+        headerTitleStyle: { fontFamily: 'Outfit-Bold' },
+      }}
+    >
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen 
@@ -23,9 +30,6 @@ const AuthNavigator = () => {
         options={{ 
           title: t('backupRestore.title'),
           headerShown: true,
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: colors.onPrimary,
-          headerTitleStyle: { fontWeight: 'bold' },
         }} 
       />
     </Stack.Navigator>

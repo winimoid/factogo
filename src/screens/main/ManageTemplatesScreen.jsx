@@ -2,45 +2,49 @@ import React, { useCallback, useContext, useState } from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 import { FAB, Text, ActivityIndicator, useTheme, Dialog, Portal, Button } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
-import { useStore } from '../../contexts/StoreContext';
-import { archiveStore } from '../../services/StoreService';
-import StoreListItem from '../../components/store/StoreListItem';
+import { deleteDocumentTemplate, getDocumentTemplates } from '../../services/DocumentTemplateService';
+import TemplateListItem from '../../components/template/TemplateListItem';
 import { LanguageContext } from '../../contexts/LanguageContext';
 
-const ManageStoresScreen = ({ navigation }) => {
+const ManageTemplatesScreen = ({ navigation }) => {
   const { t } = useContext(LanguageContext);
   const { colors } = useTheme();
-  const { stores, refreshStores, loading } = useStore();
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [dialogVisible, setDialogVisible] = useState(false);
-  const [storeToDelete, setStoreToDelete] = useState(null);
+  const [templateToDelete, setTemplateToDelete] = useState(null);
+
+  const loadTemplates = useCallback(async () => {
+    setLoading(true);
+    const data = await getDocumentTemplates();
+    setTemplates(data);
+    setLoading(false);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      const loadData = async () => {
-        await refreshStores();
-      };
-      loadData();
-    }, [refreshStores])
+      loadTemplates();
+    }, [loadTemplates])
   );
 
-  const handleEdit = (store) => {
-    navigation.navigate('EditStore', { storeId: store.storeId });
+  const handleEdit = (template) => {
+    navigation.navigate('EditTemplate', { templateId: template.templateId });
   };
 
-  const handleDelete = (store) => {
-    setStoreToDelete(store);
+  const handleDelete = (template) => {
+    setTemplateToDelete(template);
     setDialogVisible(true);
   };
 
   const hideDialog = () => {
-    setStoreToDelete(null);
+    setTemplateToDelete(null);
     setDialogVisible(false);
   };
 
   const confirmDelete = async () => {
-    if (storeToDelete) {
-      await archiveStore(storeToDelete.storeId);
-      refreshStores();
+    if (templateToDelete) {
+      await deleteDocumentTemplate(templateToDelete.templateId);
+      loadTemplates(); // Refresh the list
     }
     hideDialog();
   };
@@ -51,33 +55,33 @@ const ManageStoresScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {stores.length === 0 ? (
+      {templates.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text>{t('no_stores_found')}</Text>
+          <Text>{t('no_templates_found')}</Text>
         </View>
       ) : (
         <FlatList
-          data={stores}
-          keyExtractor={(item) => item.storeId.toString()}
+          data={templates}
+          keyExtractor={(item) => item.templateId.toString()}
           renderItem={({ item }) => (
-            <StoreListItem store={item} onEdit={handleEdit} onDelete={handleDelete} />
+            <TemplateListItem template={item} onEdit={handleEdit} onDelete={handleDelete} />
           )}
         />
       )}
       <FAB
         style={[styles.fab, { backgroundColor: colors.primary }]}
         icon="plus"
-        onPress={() => navigation.navigate('EditStore')}
+        onPress={() => navigation.navigate('EditTemplate')}
       />
       <Portal>
         <Dialog visible={dialogVisible} onDismiss={hideDialog} style={{ borderRadius: 8 }}>
-          <Dialog.Title>{t('archive_store_title')}</Dialog.Title>
+          <Dialog.Title>{t('delete_template_title')}</Dialog.Title>
           <Dialog.Content>
-            <Text>{t('archive_store_message', { storeName: storeToDelete?.name })}</Text>
+            <Text>{t('delete_template_message', { templateName: templateToDelete?.name })}</Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={hideDialog}>{t('cancel')}</Button>
-            <Button onPress={confirmDelete} style={{ marginLeft: 8 }}>{t('archive')}</Button>
+            <Button onPress={confirmDelete} style={{ marginLeft: 8 }}>{t('delete')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -107,4 +111,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ManageStoresScreen;
+export default ManageTemplatesScreen;

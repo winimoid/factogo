@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { View, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
-import { TextInput, Button, Card, useTheme, Text, Title } from 'react-native-paper';
+import { TextInput, Button, Card, useTheme, Text, Title, Menu } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { launchImageLibrary } from 'react-native-image-picker';
 import fs from 'react-native-fs';
 import { useStore } from '../../contexts/StoreContext';
 import { getStore, createStore, updateStore } from '../../services/StoreService';
+import { getDocumentTemplates } from '../../services/DocumentTemplateService';
 import { LanguageContext } from '../../contexts/LanguageContext';
 import { typography } from '../../styles/typography';
 
@@ -19,27 +20,50 @@ const EditStoreScreen = ({ route, navigation }) => {
   const [logoUrl, setLogoUrl] = useState(null);
   const [signatureUrl, setSignatureUrl] = useState(null);
   const [stampUrl, setStampUrl] = useState(null);
-  const [customTexts, setCustomTexts] = useState('');
+  const [headerText, setHeaderText] = useState('');
+  const [footerText, setFooterText] = useState('');
+  const [documentTemplateId, setDocumentTemplateId] = useState(1); // Default to 1
+  const [templates, setTemplates] = useState([]);
+  const [menuVisible, setMenuVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const isEditing = storeId !== undefined;
 
   useEffect(() => {
-    if (isEditing) {
-      const loadStore = async () => {
-        setLoading(true);
+    const loadInitialData = async () => {
+      setLoading(true);
+      const availableTemplates = await getDocumentTemplates();
+      setTemplates(availableTemplates);
+
+      if (isEditing) {
         const store = await getStore(storeId);
         if (store) {
           setName(store.name);
           setLogoUrl(store.logoUrl || null);
           setSignatureUrl(store.signatureUrl || null);
           setStampUrl(store.stampUrl || null);
-          setCustomTexts(store.customTexts || '');
+          setDocumentTemplateId(store.documentTemplateId || 1);
+          
+          // Handle customTexts parsing
+          if (store.customTexts) {
+            try {
+              const parsedTexts = JSON.parse(store.customTexts);
+              setHeaderText(parsedTexts.header || '');
+              setFooterText(parsedTexts.footer || '');
+            } catch (e) {
+              // Fallback for old plain text data
+              setHeaderText(store.customTexts);
+              setFooterText('');
+            }
+          } else {
+            setHeaderText('');
+            setFooterText('');
+          }
         }
-        setLoading(false);
-      };
-      loadStore();
-    }
+      }
+      setLoading(false);
+    };
+    loadInitialData();
   }, [storeId, isEditing]);
 
   const selectImage = (setter) => {
@@ -64,7 +88,8 @@ const EditStoreScreen = ({ route, navigation }) => {
 
   const handleSave = async () => {
     setLoading(true);
-    const storeData = { name, logoUrl, signatureUrl, stampUrl, customTexts };
+    const customTexts = JSON.stringify({ header: headerText, footer: footerText });
+    const storeData = { name, logoUrl, signatureUrl, stampUrl, customTexts, documentTemplateId };
     
     try {
       if (isEditing) {
@@ -86,7 +111,7 @@ const EditStoreScreen = ({ route, navigation }) => {
     <View style={styles.imagePickerContainer}>
       <Text style={styles.imageLabel}>{label}</Text>
       <View style={styles.imageControls}>
-        <Button icon={icon} mode="outlined" onPress={() => selectImage(setter)} style={styles.imageButton}>
+        <Button icon={icon} mode="outlined" onPress={() => selectImage(setter)} style={styles.imageButton} labelStyle={typography.button}>
           {imageUri ? t('change') : t('select')}
         </Button>
         {imageUri && (
@@ -100,6 +125,8 @@ const EditStoreScreen = ({ route, navigation }) => {
       </View>
     </View>
   );
+
+  const selectedTemplateName = templates.find(t => t.templateId === documentTemplateId)?.name || 'Select';
 
   return (
     <ScrollView 
@@ -119,27 +146,67 @@ const EditStoreScreen = ({ route, navigation }) => {
             inputStyle={typography.body}
             disabled={loading}
           />
+
+          <Menu
+            visible={menuVisible}
+            onDismiss={() => setMenuVisible(false)}
+            anchor={
+              <View>
+                <Button 
+                  mode="outlined" 
+                  onPress={() => setMenuVisible(true)} 
+                  style={styles.input}
+                  icon="file-document-outline"
+                  labelStyle={typography.button}
+                >
+                  {`${t('document_template')}: ${selectedTemplateName}`}
+                </Button>
+              </View>
+            }>
+            {templates.map(template => (
+              <Menu.Item 
+                key={template.templateId}
+                onPress={() => {
+                  setDocumentTemplateId(template.templateId);
+                  setMenuVisible(false);
+                }} 
+                title={template.name} 
+              />
+            ))}
+          </Menu>
           
           {renderImagePicker(t('logo'), logoUrl, setLogoUrl, 'image-plus')}
           {renderImagePicker(t('signature'), signatureUrl, setSignatureUrl, 'signature-freehand')}
           {renderImagePicker(t('stamp'), stampUrl, setStampUrl, 'seal')}
 
           <TextInput
-            label={t('custom_texts_json')}
-            value={customTexts}
-            onChangeText={setCustomTexts}
+            label={t('header_text')}
+            value={headerText}
+            onChangeText={setHeaderText}
             style={styles.input}
             mode="outlined"
             labelStyle={typography.body}
             inputStyle={typography.body}
             multiline
-            numberOfLines={4}
+            numberOfLines={3}
+            disabled={loading}
+          />
+          <TextInput
+            label={t('footer_text')}
+            value={footerText}
+            onChangeText={setFooterText}
+            style={styles.input}
+            mode="outlined"
+            labelStyle={typography.body}
+            inputStyle={typography.body}
+            multiline
+            numberOfLines={3}
             disabled={loading}
           />
         </Card.Content>
         <Card.Actions>
-          <Button onPress={() => navigation.goBack()} disabled={loading}>{t('cancel')}</Button>
-          <Button onPress={handleSave} loading={loading} disabled={loading} mode="contained">{t('save')}</Button>
+          <Button onPress={() => navigation.goBack()} disabled={loading} labelStyle={typography.button}>{t('cancel')}</Button>
+          <Button onPress={handleSave} loading={loading} disabled={loading} mode="contained" labelStyle={typography.button}>{t('save')}</Button>
         </Card.Actions>
       </Card>
     </ScrollView>

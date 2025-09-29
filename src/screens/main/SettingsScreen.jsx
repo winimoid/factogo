@@ -18,7 +18,8 @@ const SettingsScreen = ({ navigation }) => {
 
   const [storeName, setStoreName] = useState('');
   const [logo, setLogo] = useState(null);
-  const [customTexts, setCustomTexts] = useState('');
+  const [headerText, setHeaderText] = useState('');
+  const [footerText, setFooterText] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -29,7 +30,20 @@ const SettingsScreen = ({ navigation }) => {
     if (activeStore) {
       setStoreName(activeStore.name);
       setLogo(activeStore.logoUrl);
-      setCustomTexts(activeStore.customTexts);
+      if (activeStore.customTexts) {
+        try {
+          const parsedTexts = JSON.parse(activeStore.customTexts);
+          setHeaderText(parsedTexts.header || '');
+          setFooterText(parsedTexts.footer || '');
+        } catch (e) {
+          // Fallback for old plain text data
+          setHeaderText(activeStore.customTexts);
+          setFooterText('');
+        }
+      } else {
+        setHeaderText('');
+        setFooterText('');
+      }
     }
   }, [activeStore]);
 
@@ -37,6 +51,7 @@ const SettingsScreen = ({ navigation }) => {
     if (!activeStore) return;
     setLoading(true);
     try {
+      const customTexts = JSON.stringify({ header: headerText, footer: footerText });
       const updatedStore = { ...activeStore, name: storeName, logoUrl: logo, customTexts };
       await updateStore(activeStore.storeId, updatedStore);
       switchStore(updatedStore); // Update the active store in the context
@@ -112,13 +127,26 @@ const SettingsScreen = ({ navigation }) => {
               inputStyle={typography.body}
             />
             <TextInput
-              label={t('custom_texts_json')}
-              value={customTexts}
-              onChangeText={setCustomTexts}
+              label={t('header_text')}
+              value={headerText}
+              onChangeText={setHeaderText}
               style={styles.input}
               mode="outlined"
               labelStyle={typography.body}
               inputStyle={typography.body}
+              multiline
+              numberOfLines={3}
+            />
+            <TextInput
+              label={t('footer_text')}
+              value={footerText}
+              onChangeText={setFooterText}
+              style={styles.input}
+              mode="outlined"
+              labelStyle={typography.body}
+              inputStyle={typography.body}
+              multiline
+              numberOfLines={3}
             />
 
             {renderImagePicker('logo', logo, setLogo, 'image-plus')}
@@ -128,13 +156,23 @@ const SettingsScreen = ({ navigation }) => {
 
         <Card style={styles.card}>
           <Card.Content>
-            <Title style={styles.cardTitle}>{t('store_management')}</Title>
+            <Title style={styles.cardTitle}>{t('management')}</Title>
             <Button
               icon="store"
               mode="contained"
               onPress={() => navigation.navigate('ManageStores')}
+              style={styles.managementButton}
+              labelStyle={typography.button}
             >
               {t('manage_stores')}
+            </Button>
+            <Button
+              icon="file-document"
+              mode="contained"
+              onPress={() => navigation.navigate('ManageTemplates')}
+              labelStyle={typography.button}
+            >
+              {t('manage_templates')}
             </Button>
           </Card.Content>
         </Card>
@@ -219,8 +257,8 @@ const SettingsScreen = ({ navigation }) => {
             <Paragraph>{t('delete_image_confirm')}</Paragraph>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={hideDialog}>{t('cancel')}</Button>
-            <Button onPress={handleDeleteImage} color={colors.error}>{t('delete')}</Button>
+            <Button onPress={hideDialog} labelStyle={typography.button}>{t('cancel')}</Button>
+            <Button onPress={handleDeleteImage} color={colors.error} labelStyle={typography.button}>{t('delete')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -282,6 +320,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 2,
+  },
+  managementButton: {
+    marginBottom: 10,
   },
   preferenceItem: {
     flexDirection: 'row',

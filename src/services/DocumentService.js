@@ -51,13 +51,25 @@ export const getNextDocumentNumber = async (storeId, documentType) => {
 export const createDocumentForStore = async (storeId, docType, docData) => {
     const db = await getDatabase();
     const tableName = getTableName(docType);
-    const { document_number, clientName, date, items, total } = docData;
-    const query = `INSERT INTO ${tableName} (document_number, clientName, date, items, total, storeId) VALUES (?, ?, ?, ?, ?, ?);`;
-    try {
-        await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, storeId]);
-    } catch (error) {
-        console.error(`Error adding document type ${docType}` , error);
-        throw error;
+
+    if (docType === 'delivery_note') {
+        const { document_number, clientName, date, items, total, order_reference, payment_method } = docData;
+        const query = `INSERT INTO ${tableName} (document_number, clientName, date, items, total, storeId, order_reference, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
+        try {
+            await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, storeId, order_reference, payment_method]);
+        } catch (error) {
+            console.error(`Error adding document type ${docType}` , error);
+            throw error;
+        }
+    } else {
+        const { document_number, clientName, date, items, total } = docData;
+        const query = `INSERT INTO ${tableName} (document_number, clientName, date, items, total, storeId) VALUES (?, ?, ?, ?, ?, ?);`;
+        try {
+            await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, storeId]);
+        } catch (error) {
+            console.error(`Error adding document type ${docType}` , error);
+            throw error;
+        }
     }
 };
 
@@ -77,13 +89,25 @@ export const getDocumentsForStore = async (storeId, docType) => {
 export const updateDocument = async (docId, docType, docData) => {
     const db = await getDatabase();
     const tableName = getTableName(docType);
-    const { document_number, clientName, date, items, total } = docData;
-    const query = `UPDATE ${tableName} SET document_number = ?, clientName = ?, date = ?, items = ?, total = ? WHERE id = ?;`;
-    try {
-        await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, docId]);
-    } catch (error) {
-        console.error(`Error updating document type ${docType}`, error);
-        throw error;
+
+    if (docType === 'delivery_note') {
+        const { document_number, clientName, date, items, total, order_reference, payment_method } = docData;
+        const query = `UPDATE ${tableName} SET document_number = ?, clientName = ?, date = ?, items = ?, total = ?, order_reference = ?, payment_method = ? WHERE id = ?;`;
+        try {
+            await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, order_reference, payment_method, docId]);
+        } catch (error) {
+            console.error(`Error updating document type ${docType}`, error);
+            throw error;
+        }
+    } else {
+        const { document_number, clientName, date, items, total } = docData;
+        const query = `UPDATE ${tableName} SET document_number = ?, clientName = ?, date = ?, items = ?, total = ? WHERE id = ?;`;
+        try {
+            await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, docId]);
+        } catch (error) {
+            console.error(`Error updating document type ${docType}`, error);
+            throw error;
+        }
     }
 };
 
