@@ -174,7 +174,11 @@
     "document_number_prefix": "N° :",
     "stamp_signature": "Tampon / Signature :",
     "total_prefix": "TOTAL :",
-  "total_summary_commercial": "Arrêté la présente {{documentType}} à la somme de",
-  "paid_not_delivered": "PAYÉ NON LIVRÉ",
-  "management": "Gestion"
+    "total_summary_commercial": "Arrêté la présente {{documentType}} à la somme de",
+    "paid_not_delivered": "PAYÉ NON LIVRÉ",
+    "select_language": "Sélectionner la langue",
+    "ewe": "Ewé",
+    "italian": "Italien",
+    "spanish": "Espagnol",
+    "japanese": "Japonais"
 }

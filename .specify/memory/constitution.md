@@ -1,22 +1,12 @@
 <!--
 Sync Impact Report
-- Version: 1.0.0 → 1.1.0
-- Modified Principles:
-  - Principle II: State Management (replaces Theming)
-  - Principle III: Internationalization (no change)
-  - Principle IV: Theming (replaces Navigation)
+- Version: 1.1.0 → 1.2.0
 - Added Principles:
-  - I. Code Quality
-  - V. Multi-Store Support
-  - VI. Reusable Components
-  - VII. Data Integrity
-  - VIII. Scalability
-- Removed Principles:
-  - Platform-Specific Code
-  - Navigation
-  - Data Persistence
+  - IX. User Onboarding & Education
 - Templates requiring updates:
-  - ✅ .specify/templates/plan-template.md
+  - ⚠ .specify/templates/plan-template.md (Check if onboarding tasks need specific planning criteria)
+  - ⚠ .specify/templates/spec-template.md (Check if specs now require an 'Onboarding Experience' section)
+  - ⚠ .specify/templates/tasks-template.md (Consider adding an 'onboarding' or 'nux' task type)
 -->
 # factogo Constitution
 
@@ -46,6 +36,9 @@ All data operations MUST include input validation and ensure data consistency ac
 ### VIII. Scalability
 Features, especially those related to data and business logic, MUST be designed to accommodate future growth, such as adding more stores or expanding inventory management capabilities.
 
+### IX. User Onboarding & Education
+The application MUST provide a version-aware onboarding experience. This system will trigger a full setup guide for new installations and targeted tutorials for users who have updated the application, ensuring a smooth and guided introduction to new or required functionalities.
+
 ## Development Workflow
 
 New features or significant changes must follow a structured workflow:
@@ -63,4 +56,4 @@ New features or significant changes must follow a structured workflow:
 
 This constitution is the single source of truth for development standards. Any proposed amendments must be reviewed and approved by the project maintainers. All development activities must align with these principles.
 
-**Version**: 1.1.0 | **Ratified**: 2025-09-27 | **Last Amended**: 2025-09-27
+**Version**: 1.2.0 | **Ratified**: 2025-09-27 | **Last Amended**: 2025-09-29

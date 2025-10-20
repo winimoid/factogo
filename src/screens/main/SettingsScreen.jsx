@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { View, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
-import { TextInput, Button, Text, Switch, useTheme, Card, Title, Paragraph, Snackbar, Divider, ActivityIndicator, Portal, Dialog } from 'react-native-paper';
+import { TextInput, Button, Text, Switch, useTheme, Card, Title, Paragraph, Snackbar, Divider, ActivityIndicator, Portal, Dialog, RadioButton, TouchableRipple } from 'react-native-paper';
 import { LanguageContext } from '../../contexts/LanguageContext';
 import { ThemeContext } from '../../contexts/ThemeContext';
 import { useStore } from '../../contexts/StoreContext';
@@ -23,8 +23,18 @@ const SettingsScreen = ({ navigation }) => {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [dialogVisible, setDialogVisible] = useState(false);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [languageDialogVisible, setLanguageDialogVisible] = useState(false);
   const [imageToDelete, setImageToDelete] = useState({ setter: null });
+
+  const availableLanguages = [
+    { code: 'en', name: t('english') },
+    { code: 'fr', name: t('french') },
+    { code: 'ee', name: t('ewe') },
+    { code: 'it', name: t('italian') },
+    { code: 'es', name: t('spanish') },
+    { code: 'ja', name: t('japanese') },
+  ];
 
   useEffect(() => {
     if (activeStore) {
@@ -36,7 +46,6 @@ const SettingsScreen = ({ navigation }) => {
           setHeaderText(parsedTexts.header || '');
           setFooterText(parsedTexts.footer || '');
         } catch (e) {
-          // Fallback for old plain text data
           setHeaderText(activeStore.customTexts);
           setFooterText('');
         }
@@ -54,7 +63,7 @@ const SettingsScreen = ({ navigation }) => {
       const customTexts = JSON.stringify({ header: headerText, footer: footerText });
       const updatedStore = { ...activeStore, name: storeName, logoUrl: logo, customTexts };
       await updateStore(activeStore.storeId, updatedStore);
-      switchStore(updatedStore); // Update the active store in the context
+      switchStore(updatedStore);
       setSnackbarVisible(true);
     } finally {
       setLoading(false);
@@ -78,11 +87,11 @@ const SettingsScreen = ({ navigation }) => {
 
   const showDeleteDialog = (setter) => {
     setImageToDelete({ setter });
-    setDialogVisible(true);
+    setDeleteDialogVisible(true);
   };
 
-  const hideDialog = () => {
-    setDialogVisible(false);
+  const hideDeleteDialog = () => {
+    setDeleteDialogVisible(false);
     setImageToDelete({ setter: null });
   };
 
@@ -90,7 +99,12 @@ const SettingsScreen = ({ navigation }) => {
     if (imageToDelete.setter) {
       imageToDelete.setter(null);
     }
-    hideDialog();
+    hideDeleteDialog();
+  };
+
+  const handleLanguageSelect = (selectedLocale) => {
+    setLanguage(selectedLocale);
+    setLanguageDialogVisible(false);
   };
 
   const renderImagePicker = (label, image, setter, icon) => (
@@ -109,88 +123,47 @@ const SettingsScreen = ({ navigation }) => {
     </View>
   );
 
+  const currentLanguageName = availableLanguages.find(lang => lang.code === locale)?.name || locale;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Title style={styles.headerTitle}>{t('settings')}</Title>
 
+        {/* Company Information Card */}
         <Card style={styles.card}>
           <Card.Content>
             <Title style={styles.cardTitle}>{t('company_information')}</Title>
-            <TextInput
-              label={t('company_name')}
-              value={storeName}
-              onChangeText={setStoreName}
-              style={styles.input}
-              mode="outlined"
-              labelStyle={typography.body}
-              inputStyle={typography.body}
-            />
-            <TextInput
-              label={t('header_text')}
-              value={headerText}
-              onChangeText={setHeaderText}
-              style={styles.input}
-              mode="outlined"
-              labelStyle={typography.body}
-              inputStyle={typography.body}
-              multiline
-              numberOfLines={3}
-            />
-            <TextInput
-              label={t('footer_text')}
-              value={footerText}
-              onChangeText={setFooterText}
-              style={styles.input}
-              mode="outlined"
-              labelStyle={typography.body}
-              inputStyle={typography.body}
-              multiline
-              numberOfLines={3}
-            />
-
+            <TextInput label={t('company_name')} value={storeName} onChangeText={setStoreName} style={styles.input} mode="outlined" />
+            <TextInput label={t('header_text')} value={headerText} onChangeText={setHeaderText} style={styles.input} mode="outlined" multiline numberOfLines={3} />
+            <TextInput label={t('footer_text')} value={footerText} onChangeText={setFooterText} style={styles.input} mode="outlined" multiline numberOfLines={3} />
             {renderImagePicker('logo', logo, setLogo, 'image-plus')}
-
           </Card.Content>
         </Card>
 
+        {/* Management Card */}
         <Card style={styles.card}>
           <Card.Content>
             <Title style={styles.cardTitle}>{t('management')}</Title>
-            <Button
-              icon="store"
-              mode="contained"
-              onPress={() => navigation.navigate('ManageStores')}
-              style={styles.managementButton}
-              labelStyle={typography.button}
-            >
+            <Button icon="store" mode="contained" onPress={() => navigation.navigate('ManageStores')} style={styles.managementButton} labelStyle={typography.button}>
               {t('manage_stores')}
             </Button>
-            <Button
-              icon="file-document"
-              mode="contained"
-              onPress={() => navigation.navigate('ManageTemplates')}
-              labelStyle={typography.button}
-            >
+            <Button icon="file-document" mode="contained" onPress={() => navigation.navigate('ManageTemplates')} labelStyle={typography.button}>
               {t('manage_templates')}
             </Button>
           </Card.Content>
         </Card>
 
+        {/* App Preferences Card */}
         <Card style={styles.card}>
           <Card.Content>
             <Title style={styles.cardTitle}>{t('app_preferences')}</Title>
-            <View style={styles.preferenceItem}>
-              <Text style={styles.preferenceLabel}>{t('language')}</Text>
-              <View style={styles.languageButtons}>
-                <Button mode={locale === 'en' ? 'contained' : 'outlined'} onPress={() => setLanguage('en')} style={styles.languageButton} labelStyle={typography.button}>
-                  {t('english')}
-                </Button>
-                <Button mode={locale === 'fr' ? 'contained' : 'outlined'} onPress={() => setLanguage('fr')} style={styles.languageButton} labelStyle={typography.button}>
-                  {t('french')}
-                </Button>
+            <TouchableRipple onPress={() => setLanguageDialogVisible(true)}>
+              <View style={styles.preferenceItem}>
+                <Text style={styles.preferenceLabel}>{t('language')}</Text>
+                <Text style={styles.preferenceValue}>{currentLanguageName}</Text>
               </View>
-            </View>
+            </TouchableRipple>
             <Divider style={styles.divider} />
             <View style={styles.preferenceItem}>
               <Text style={styles.preferenceLabel}>{t('theme')}</Text>
@@ -199,6 +172,7 @@ const SettingsScreen = ({ navigation }) => {
           </Card.Content>
         </Card>
 
+        {/* Theme Colors Card */}
         <Card style={styles.card}>
           <Card.Content>
             <Title style={styles.cardTitle}>{t('app_theme_colors')}</Title>
@@ -206,24 +180,11 @@ const SettingsScreen = ({ navigation }) => {
               {themes.map((themeItem) => (
                 <TouchableOpacity
                   key={themeItem.name}
-                  style={[
-                    styles.themeOption,
-                    currentThemeColors.name === themeItem.name && { borderColor: colors.primary, borderWidth: 2 },
-                  ]}
+                  style={[ styles.themeOption, currentThemeColors.name === themeItem.name && { borderColor: colors.primary, borderWidth: 2 }]}
                   onPress={() => setAppThemeColors(themeItem)}
                 >
-                  <View
-                    style={[
-                      styles.colorPreview,
-                      { backgroundColor: themeItem.primary },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.colorPreview,
-                      { backgroundColor: themeItem.secondary },
-                    ]}
-                  />
+                  <View style={[ styles.colorPreview, { backgroundColor: themeItem.primary }]} />
+                  <View style={[ styles.colorPreview, { backgroundColor: themeItem.secondary }]} />
                   <Text style={styles.themeOptionText}>{themeItem.name}</Text>
                 </TouchableOpacity>
               ))}
@@ -236,30 +197,36 @@ const SettingsScreen = ({ navigation }) => {
         </Button>
       </ScrollView>
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
-        action={{
-          label: t('dismiss'),
-          onPress: () => {
-            setSnackbarVisible(false);
-          },
-        }}
-      >
+      <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)} duration={3000}>
         {t('settings_saved_successfully')}
       </Snackbar>
 
+      {/* Delete Confirmation Dialog */}
       <Portal>
-        <Dialog visible={dialogVisible} onDismiss={hideDialog} style={{ borderRadius: 8 }}>
+        <Dialog visible={deleteDialogVisible} onDismiss={hideDeleteDialog} style={{ borderRadius: 8 }}>
           <Dialog.Title>{t('delete_image_title')}</Dialog.Title>
-          <Dialog.Content>
-            <Paragraph>{t('delete_image_confirm')}</Paragraph>
-          </Dialog.Content>
+          <Dialog.Content><Paragraph>{t('delete_image_confirm')}</Paragraph></Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={hideDialog} labelStyle={typography.button}>{t('cancel')}</Button>
-            <Button onPress={handleDeleteImage} color={colors.error} labelStyle={typography.button}>{t('delete')}</Button>
+            <Button onPress={hideDeleteDialog}>{t('cancel')}</Button>
+            <Button onPress={handleDeleteImage} buttonColor={colors.error}>{t('delete')}</Button>
           </Dialog.Actions>
+        </Dialog>
+
+        {/* Language Selection Dialog */}
+        <Dialog visible={languageDialogVisible} onDismiss={() => setLanguageDialogVisible(false)} style={{ borderRadius: 8 }}>
+          <Dialog.Title>{t('select_language')}</Dialog.Title>
+          <Dialog.Content>
+            <RadioButton.Group onValueChange={handleLanguageSelect} value={locale}>
+              {availableLanguages.map(lang => (
+                <TouchableRipple key={lang.code} onPress={() => handleLanguageSelect(lang.code)}>
+                  <View style={styles.languageOption}>
+                    <RadioButton.Android value={lang.code} />
+                    <Text style={styles.languageOptionText}>{lang.name}</Text>
+                  </View>
+                </TouchableRipple>
+              ))}
+            </RadioButton.Group>
+          </Dialog.Content>
         </Dialog>
       </Portal>
     </View>
@@ -267,113 +234,29 @@ const SettingsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-  },
-  headerTitle: {
-    ...typography.h2,
-    textAlign: 'center',
-    marginBottom: 25,
-  },
-  card: {
-    marginBottom: 20,
-    elevation: 4,
-    borderRadius: 8,
-  },
-  cardTitle: {
-    ...typography.h3,
-    marginBottom: 15,
-  },
-  input: {
-    marginBottom: 15,
-  },
-  imagePickerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-    justifyContent: 'space-between',
-  },
-  imageButton: {
-    flex: 1,
-    marginRight: 10,
-  },
-  previewContainer: {
-    position: 'relative',
-    width: 80,
-    height: 80,
-  },
-  previewImage: {
-    width: 80,
-    height: 80,
-    resizeMode: 'contain',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 50,
-  },
-  deleteButton: {
-    position: 'absolute',
-    top: -10,
-    right: -10,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 2,
-  },
-  managementButton: {
-    marginBottom: 10,
-  },
-  preferenceItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  preferenceLabel: {
-    ...typography.body,
-  },
-  languageButtons: {
-    flexDirection: 'row',
-  },
-  languageButton: {
-    marginHorizontal: 5,
-  },
-  divider: {
-    marginVertical: 10,
-  },
-  saveButton: {
-    marginTop: 20,
-    paddingVertical: 10,
-  },
-  themeSelectionContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    marginTop: 10,
-  },
-  themeOption: {
-    alignItems: 'center',
-    padding: 10,
-    margin: 5,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    width: '45%',
-  },
-  colorPreview: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    marginBottom: 5,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  themeOptionText: {
-    ...typography.body,
-    marginTop: 5,
-    textAlign: 'center',
-  },
+  container: { flex: 1 },
+  scrollContent: { padding: 20 },
+  headerTitle: { ...typography.h2, textAlign: 'center', marginBottom: 25 },
+  card: { marginBottom: 20, elevation: 4, borderRadius: 8 },
+  cardTitle: { ...typography.h3, marginBottom: 15 },
+  input: { marginBottom: 15 },
+  imagePickerContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, justifyContent: 'space-between' },
+  imageButton: { flex: 1, marginRight: 10 },
+  previewContainer: { position: 'relative', width: 80, height: 80 },
+  previewImage: { width: 80, height: 80, resizeMode: 'contain', borderWidth: 1, borderColor: '#ddd', borderRadius: 50 },
+  deleteButton: { position: 'absolute', top: -10, right: -10, backgroundColor: 'white', borderRadius: 12, padding: 2 },
+  managementButton: { marginBottom: 10 },
+  preferenceItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 15 },
+  preferenceLabel: { ...typography.body, fontSize: 16 },
+  preferenceValue: { ...typography.body, fontSize: 16, color: '#888' },
+  languageOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+  languageOptionText: { ...typography.body, marginLeft: 10, fontSize: 16 },
+  divider: { marginVertical: 5 },
+  saveButton: { marginTop: 20, paddingVertical: 10 },
+  themeSelectionContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', marginTop: 10 },
+  themeOption: { alignItems: 'center', padding: 10, margin: 5, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, width: '45%' },
+  colorPreview: { width: 30, height: 30, borderRadius: 15, marginBottom: 5, borderWidth: 1, borderColor: '#eee' },
+  themeOptionText: { ...typography.body, marginTop: 5, textAlign: 'center' },
 });
 
 export default SettingsScreen;

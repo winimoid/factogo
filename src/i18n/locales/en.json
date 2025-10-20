@@ -174,7 +174,11 @@
     "document_number_prefix": "No:",
     "stamp_signature": "Stamp / Signature:",
     "total_prefix": "TOTAL:",
-  "total_summary_commercial": "Closed the present {{documentType}} at the sum of",
-  "paid_not_delivered": "PAID NOT DELIVERED",
-  "management": "Management"
+    "total_summary_commercial": "Closed the present {{documentType}} at the sum of",
+    "paid_not_delivered": "PAID NOT DELIVERED",
+    "select_language": "Select Language",
+    "ewe": "Ewe",
+    "italian": "Italian",
+    "spanish": "Spanish",
+    "japanese": "Japanese"
 }

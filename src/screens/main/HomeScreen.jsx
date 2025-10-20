@@ -95,7 +95,7 @@ const HomeScreen = ({ navigation }) => {
       return;
     }
     // Always include signature when generating from home screen
-    const html = await generatePdfHtml(item, type, activeStore, t, locale, true);
+    const html = await generatePdfHtml(item, type, activeStore, t, locale, true, colors.primary);
 
     if (action === 'preview') {
       navigation.navigate('PdfPreview', { htmlContent: html });

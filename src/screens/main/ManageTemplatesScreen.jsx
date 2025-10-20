@@ -1,10 +1,11 @@
 import React, { useCallback, useContext, useState } from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
-import { FAB, Text, ActivityIndicator, useTheme, Dialog, Portal, Button } from 'react-native-paper';
+import { FAB, Text, ActivityIndicator, useTheme, Dialog, Portal, Button, Paragraph } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { deleteDocumentTemplate, getDocumentTemplates } from '../../services/DocumentTemplateService';
 import TemplateListItem from '../../components/template/TemplateListItem';
 import { LanguageContext } from '../../contexts/LanguageContext';
+import { typography } from '../../styles/typography';
 
 const ManageTemplatesScreen = ({ navigation }) => {
   const { t } = useContext(LanguageContext);
@@ -75,9 +76,9 @@ const ManageTemplatesScreen = ({ navigation }) => {
       />
       <Portal>
         <Dialog visible={dialogVisible} onDismiss={hideDialog} style={{ borderRadius: 8 }}>
-          <Dialog.Title>{t('delete_template_title')}</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{t('delete_template_title')}</Dialog.Title>
           <Dialog.Content>
-            <Text>{t('delete_template_message', { templateName: templateToDelete?.name })}</Text>
+            <Paragraph style={styles.dialogParagraph}>{t('delete_template_message', { templateName: templateToDelete?.name })}</Paragraph>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={hideDialog}>{t('cancel')}</Button>
@@ -109,6 +110,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
+  dialogTitle: { ...typography.h3 },
+  dialogParagraph: { ...typography.body },
 });
 
 export default ManageTemplatesScreen;

@@ -1,11 +1,12 @@
 import React, { useCallback, useContext, useState } from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
-import { FAB, Text, ActivityIndicator, useTheme, Dialog, Portal, Button } from 'react-native-paper';
+import { FAB, Text, ActivityIndicator, useTheme, Dialog, Portal, Button, Paragraph } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../../contexts/StoreContext';
 import { archiveStore } from '../../services/StoreService';
 import StoreListItem from '../../components/store/StoreListItem';
 import { LanguageContext } from '../../contexts/LanguageContext';
+import { typography } from '../../styles/typography';
 
 const ManageStoresScreen = ({ navigation }) => {
   const { t } = useContext(LanguageContext);
@@ -71,9 +72,9 @@ const ManageStoresScreen = ({ navigation }) => {
       />
       <Portal>
         <Dialog visible={dialogVisible} onDismiss={hideDialog} style={{ borderRadius: 8 }}>
-          <Dialog.Title>{t('archive_store_title')}</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{t('archive_store_title')}</Dialog.Title>
           <Dialog.Content>
-            <Text>{t('archive_store_message', { storeName: storeToDelete?.name })}</Text>
+            <Paragraph style={styles.dialogParagraph}>{t('archive_store_message', { storeName: storeToDelete?.name })}</Paragraph>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={hideDialog}>{t('cancel')}</Button>
@@ -105,6 +106,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
+  dialogTitle: { ...typography.h3 },
+  dialogParagraph: { ...typography.body },
 });
 
 export default ManageStoresScreen;

@@ -7,11 +7,6 @@ const migrations = [
       `CREATE TABLE IF NOT EXISTS invoices (id INTEGER PRIMARY KEY AUTOINCREMENT, document_number TEXT, clientName TEXT NOT NULL, date TEXT NOT NULL, items TEXT NOT NULL, total REAL NOT NULL);`,
       `CREATE TABLE IF NOT EXISTS quotes (id INTEGER PRIMARY KEY AUTOINCREMENT, document_number TEXT, clientName TEXT NOT NULL, date TEXT NOT NULL, items TEXT NOT NULL, total REAL NOT NULL);`,
       `CREATE TABLE IF NOT EXISTS delivery_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, document_number TEXT, clientName TEXT NOT NULL, date TEXT NOT NULL, items TEXT NOT NULL, total INTEGER NOT NULL, order_reference TEXT, payment_method TEXT);`,
-    ],
-  },
-  {
-    version: 2,
-    queries: [
       `CREATE TABLE IF NOT EXISTS stores (storeId INTEGER PRIMARY KEY AUTOINCREMENT, ownerUserId INTEGER, name TEXT NOT NULL, logoUrl TEXT, documentTemplateId INTEGER, customTexts TEXT, status TEXT NOT NULL);`,
       `CREATE TABLE IF NOT EXISTS document_templates (templateId INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, htmlContent TEXT);`,
       `ALTER TABLE invoices ADD COLUMN storeId INTEGER;`,
@@ -22,34 +17,8 @@ const migrations = [
       `UPDATE quotes SET storeId = 1 WHERE storeId IS NULL;`,
       `UPDATE delivery_notes SET storeId = 1 WHERE storeId IS NULL;`,
       `UPDATE settings SET storeId = 1 WHERE storeId IS NULL;`,
-    ],
-  },
-  {
-    version: 3,
-    queries: [
       `ALTER TABLE stores ADD COLUMN signatureUrl TEXT;`,
       `ALTER TABLE stores ADD COLUMN stampUrl TEXT;`,
-    ],
-  },
-  {
-    version: 4, // This is a corrective migration to ensure both columns from v3 exist.
-    queries: [
-      `ALTER TABLE stores ADD COLUMN signatureUrl TEXT;`,
-      `ALTER TABLE stores ADD COLUMN stampUrl TEXT;`,
-    ],
-  },
-  {
-    version: 5, // This is a corrective migration to ensure both columns from v3 exist.
-    queries: [
-      `ALTER TABLE stores ADD COLUMN stampUrl TEXT;`,
-    ],
-  },
-  {
-    version: 6,
-    queries: [
-      `INSERT INTO document_templates (templateId, name, htmlContent) 
-       SELECT 3, 'Commercial', 'Commercial-style template' 
-       WHERE NOT EXISTS (SELECT 1 FROM document_templates WHERE templateId = 3);`,
     ],
   },
 ];
@@ -73,29 +42,37 @@ export const runMigrations = async (db) => {
     if (migration.version > currentVersion) {
       console.log(`Attempting to migrate to version ${migration.version}`);
       try {
-        // Run all queries for this version in a single transaction.
-        await db.transaction(async (tx) => {
-          for (const query of migration.queries) {
-            await tx.executeSql(query);
-          }
-          // Update version table inside the same transaction.
-          await tx.executeSql('INSERT INTO db_versions (version) VALUES (?);', [migration.version]);
+        await new Promise((resolve, reject) => {
+          db.transaction(
+            tx => {
+              // Execute all migration queries
+              migration.queries.forEach(query => {
+                tx.executeSql(query, [], 
+                  () => {}, // success callback for each query (optional)
+                  (_, error) => { // error callback for each query
+                    console.error(`Error executing query in migration version ${migration.version}: "${query}"`);
+                    // Returning true from this callback triggers a rollback
+                    // and calls the transaction's main error callback.
+                    return true;
+                  }
+                );
+              });
+              // After queuing all migration queries, queue the version update
+              tx.executeSql('INSERT INTO db_versions (version) VALUES (?);', [migration.version]);
+            },
+            (error) => { // Transaction error callback (called on rollback)
+              console.error(`Failed to migrate to version ${migration.version}. The transaction was rolled back.`, error);
+              reject(error);
+            },
+            () => { // Transaction success callback (called on commit)
+              console.log(`Successfully migrated to version ${migration.version}`);
+              resolve();
+            }
+          );
         });
-        console.log(`Successfully migrated to version ${migration.version}`);
-        // Update our tracked version
-        currentVersion = migration.version;
       } catch (error) {
-        // This is the key part: handle the "duplicate column" error.
-        if (error.message.includes('duplicate column')) {
-          console.warn(`Migration to version ${migration.version} failed because it was likely already applied. Syncing version table.`);
-          // The schema is already correct, so we just need to update the version table.
-          await db.executeSql('INSERT INTO db_versions (version) VALUES (?);', [migration.version]);
-          currentVersion = migration.version; // Update our tracked version
-        } else {
-          // For any other error, we stop to prevent corruption.
-          console.error(`Failed to migrate to version ${migration.version}. Error: ${error.message}`);
-          throw error; // Re-throw the error to stop the app initialization.
-        }
+        // Re-throw the error to halt app initialization, as the migration failed.
+        throw error;
       }
     }
   }

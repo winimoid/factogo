@@ -3,6 +3,10 @@ import { initReactI18next } from 'react-i18next';
 import * as RNLocalize from 'react-native-localize';
 import en from './locales/en.json';
 import fr from './locales/fr.json';
+import ee from './locales/ee.json';
+import it from './locales/it.json';
+import es from './locales/es.json';
+import ja from './locales/ja.json';
 
 const resources = {
   en: {
@@ -10,6 +14,18 @@ const resources = {
   },
   fr: {
     translation: fr,
+  },
+  ee: {
+    translation: ee,
+  },
+  it: {
+    translation: it,
+  },
+  es: {
+    translation: es,
+  },
+  ja: {
+    translation: ja,
   },
 };
 
