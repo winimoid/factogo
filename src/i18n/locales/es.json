@@ -4,8 +4,6 @@
     "password": "Contraseña",
     "settings": "Configuración",
     "language": "Idioma",
-    "english": "Inglés",
-    "french": "Francés",
     "theme": "Tema",
     "light": "Claro",
     "dark": "Oscuro",
@@ -177,7 +175,16 @@
     "total_summary_commercial": "Se cierra el presente {{documentType}} a la suma de",
     "paid_not_delivered": "PAGADO NO ENTREGADO",
     "select_language": "Seleccionar idioma",
-    "ewe": "Ewé",
+    "french": "Français",
+    "ewe": "Eʋegbe",
+    "italian": "Italiano",
     "spanish": "Español",
-    "japanese": "Japonés"
+    "japanese": "日本語",
+    "english": "English",
+    "discount_value": "Valor del descuento",
+    "discount": "Descuento",
+    "fixed": "Fijo",
+    "percentage": "Porcentaje",
+    "convert_to_delivery_note": "Convertir en albarán",
+    "convert_to_invoice": "Convertir en factura"
 }

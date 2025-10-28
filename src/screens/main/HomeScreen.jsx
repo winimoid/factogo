@@ -1,6 +1,6 @@
 import React, { useState, useContext, useCallback } from 'react';
 import { View, FlatList, StyleSheet, useWindowDimensions, Platform } from 'react-native';
-import { Text, Card, IconButton, List, Dialog, Portal, Button, useTheme, ActivityIndicator, TextInput, SegmentedButtons, Title, Paragraph } from 'react-native-paper';
+import { Text, Card, IconButton, List, Dialog, Portal, Button, useTheme, ActivityIndicator, TextInput, SegmentedButtons, Title, Paragraph, Menu } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { TabView, TabBar } from 'react-native-tab-view';
 import { LanguageContext } from '../../contexts/LanguageContext';
@@ -24,6 +24,7 @@ const HomeScreen = ({ navigation }) => {
   const [dialogMessage, setDialogMessage] = useState('');
   const [itemToDelete, setItemToDelete] = useState(null);
   const [itemTypeToDelete, setItemTypeToDelete] = useState(null);
+  const [visibleMenu, setVisibleMenu] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('date_newest');
@@ -133,7 +134,7 @@ const HomeScreen = ({ navigation }) => {
       quote: 'QuoteForm',
       delivery_note: 'DeliveryNoteForm'
     };
-    navigation.navigate(formMap[type], { document });
+    navigation.navigate(formMap[type], { document: document, storeId: activeStore?.storeId });
   };
 
   const renderDocument = ({ item, type }) => {
@@ -154,11 +155,23 @@ ${t('date')}: ${item.date}`}
           descriptionStyle={styles.listItemDescription}
         />
         <Card.Actions style={styles.cardActions}>
-          <IconButton icon="file-eye-outline" onPress={() => handlePdfAction('preview', item, type)} size={20} />
-          <IconButton icon="pencil-outline" onPress={() => navigateToForm(type, item)} size={20} />
-          <IconButton icon="download" onPress={() => handlePdfAction('download', item, type)} size={20} />
-          <IconButton icon="share-variant" onPress={() => handlePdfAction('share', item, type)} size={20} />
-          <IconButton icon="delete-outline" onPress={() => showDeleteDialog(item, type)} size={20} />
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+            <IconButton icon="file-eye-outline" onPress={() => handlePdfAction('preview', item, type)} size={20} />
+            <IconButton icon="pencil-outline" onPress={() => navigateToForm(type, item)} size={20} />
+            <IconButton icon="download" onPress={() => handlePdfAction('download', item, type)} size={20} />
+            <IconButton icon="share-variant" onPress={() => handlePdfAction('share', item, type)} size={20} />
+            <IconButton icon="delete-outline" onPress={() => showDeleteDialog(item, type)} size={20} />
+          </View>
+          {type === 'quote' ? (
+            <Menu
+              visible={visibleMenu === item.id}
+              onDismiss={() => setVisibleMenu(null)}
+              anchor={<IconButton icon="dots-vertical" onPress={() => setVisibleMenu(item.id)} size={20} />}
+            >
+              <Menu.Item onPress={() => { navigateToForm('invoice', { ...item, id: null, document_number: null, status: 'draft', convertedFrom: item.id }); setVisibleMenu(null); }} title={t('convert_to_invoice')} />
+              <Menu.Item onPress={() => { navigateToForm('delivery_note', { ...item, id: null, document_number: null, status: 'draft', convertedFrom: item.id }); setVisibleMenu(null); }} title={t('convert_to_delivery_note')} />
+            </Menu>
+          ) : null}
         </Card.Actions>
       </Card>
     );

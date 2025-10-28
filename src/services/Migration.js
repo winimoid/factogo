@@ -21,6 +21,17 @@ const migrations = [
       `ALTER TABLE stores ADD COLUMN stampUrl TEXT;`,
     ],
   },
+  {
+    version: 2,
+    queries: [
+      `ALTER TABLE invoices ADD COLUMN discountType TEXT;`,
+      `ALTER TABLE invoices ADD COLUMN discountValue REAL;`,
+      `ALTER TABLE invoices ADD COLUMN status TEXT;`,
+      `ALTER TABLE quotes ADD COLUMN discountType TEXT;`,
+      `ALTER TABLE quotes ADD COLUMN discountValue REAL;`,
+      `ALTER TABLE quotes ADD COLUMN status TEXT;`,
+    ],
+  },
 ];
 
 export const runMigrations = async (db) => {

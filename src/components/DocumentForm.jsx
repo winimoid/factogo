@@ -32,11 +32,13 @@ const DocumentForm = ({ route, navigation, documentType }) => {
   const [totalQuantity, setTotalQuantity] = useState(0); // For delivery notes
   const [orderReference, setOrderReference] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [discountType, setDiscountType] = useState('percentage'); // 'percentage' or 'fixed'
+  const [discountValue, setDiscountValue] = useState(0);
 
   const { t, locale } = useContext(LanguageContext);
   const { colors } = useTheme();
   const { activeStore } = useStore();
-  const { document, storeId } = route.params || {};
+  const { document, storeId, convertedFrom } = route.params || {};
 
   const isDeliveryNote = useMemo(() => documentType === 'delivery_note', [documentType]);
 
@@ -55,10 +57,18 @@ const DocumentForm = ({ route, navigation, documentType }) => {
         } else { setDate(new Date()); }
         setItems(document.items ? JSON.parse(document.items) : []);
         setTotal(document.total);
+        setDiscountType(document.discountType || 'percentage');
+        setDiscountValue(document.discountValue || 0);
 
         if (isDeliveryNote) {
           setOrderReference(document.order_reference || '');
           setPaymentMethod(document.payment_method || '');
+        }
+
+        if (!document.document_number) {console.log(document, storeId, documentType);
+          const newDocNumber = await getNextDocumentNumber(storeId, documentType);
+          setOfficialDocumentNumber(newDocNumber);
+          setDisplayNumber(newDocNumber);
         }
       } else {
         // Creating a new document
@@ -72,11 +82,16 @@ const DocumentForm = ({ route, navigation, documentType }) => {
   }, [document, documentType, isDeliveryNote, storeId]);
 
   const calculateTotals = useCallback(() => {
-    const newTotal = items.reduce((acc, item) => acc + item.quantity * item.price, 0);
-    setTotal(newTotal);
+    let newTotal = items.reduce((acc, item) => acc + item.quantity * item.price, 0);
+    if (discountType === 'percentage') {
+      newTotal = newTotal * (1 - discountValue / 100);
+    } else {
+      newTotal = newTotal - discountValue;
+    }
+    setTotal(newTotal < 0 ? 0 : newTotal);
     const newTotalQuantity = items.reduce((acc, item) => acc + item.quantity, 0);
     setTotalQuantity(newTotalQuantity);
-  }, [items]);
+  }, [items, discountType, discountValue]);
 
   useEffect(() => {
     calculateTotals();
@@ -102,7 +117,9 @@ const DocumentForm = ({ route, navigation, documentType }) => {
       document_number: displayNumber, // Always save the official number
       clientName, 
       date: date.toISOString().split('T')[0], 
-      items 
+      items, 
+      discountType,
+      discountValue,
     };
 
     if (isDeliveryNote) {
@@ -116,10 +133,10 @@ const DocumentForm = ({ route, navigation, documentType }) => {
       newDocument = { ...newDocument, total };
     }
 
-    if (document) {
+    if (document && document.id) {
       await updateDocument(document.id, documentType, newDocument);
     } else {
-      await createDocumentForStore(storeId, documentType, newDocument);
+      await createDocumentForStore(storeId, documentType, newDocument, document?.convertedFrom);
     }
     navigation.goBack();
   };
@@ -147,6 +164,8 @@ const DocumentForm = ({ route, navigation, documentType }) => {
         total: isDeliveryNote ? totalQuantity : total,
         order_reference: orderReference,
         payment_method: paymentMethod,
+        discountType,
+        discountValue,
       };
 
       const htmlContent = await generatePdfHtml(documentData, documentType, activeStore, t, locale, includeSignature, colors.primary);
@@ -216,7 +235,7 @@ const DocumentForm = ({ route, navigation, documentType }) => {
             <Card style={styles.card} elevation={4}>
               <Card.Content>
                 <Title style={styles.cardTitle}>{getDocumentTitle(documentType)}</Title>
-                <TextInput label={`${t(documentType)} N°`} value={displayNumber} onChangeText={setDisplayNumber} style={styles.input} mode="outlined" />
+                <TextInput label={`${t(documentType)} ${t('document_number_prefix')}`} value={displayNumber} onChangeText={setDisplayNumber} style={styles.input} mode="outlined" />
                 <TextInput label={t('client_name')} value={clientName} onChangeText={setClientName} style={styles.input} mode="outlined" />
                 <TextInput label={t('date')} value={date.toISOString().split('T')[0]} onFocus={() => setIsDatePickerVisible(true)} showSoftInputOnFocus={false} style={styles.input} mode="outlined" right={<TextInput.Icon icon="calendar" onPress={() => setIsDatePickerVisible(true)} />} />
               </Card.Content>
@@ -242,6 +261,27 @@ const DocumentForm = ({ route, navigation, documentType }) => {
         )}
         ListFooterComponent={(
           <View style={styles.contentPadding}>
+            <Card style={styles.card} elevation={4}>
+              <Card.Content>
+                <Title style={styles.cardTitle}>{t('discount')}</Title>
+                <View style={styles.discountContainer}>
+                  <Switch
+                    value={discountType === 'percentage'}
+                    onValueChange={() => setDiscountType(discountType === 'percentage' ? 'fixed' : 'percentage')}
+                  />
+                  <Text>{discountType === 'percentage' ? t('percentage') : t('fixed')}</Text>
+                </View>
+                <TextInput
+                  label={t('discount_value')}
+                  value={discountValue.toString()}
+                  onChangeText={setDiscountValue}
+                  keyboardType="numeric"
+                  style={styles.input}
+                  mode="outlined"
+                />
+              </Card.Content>
+            </Card>
+
             <Card style={styles.card} elevation={4}>
               <Card.Content>
                 {isDeliveryNote ? (
@@ -318,6 +358,7 @@ const styles = StyleSheet.create({
   },
   dialogTitle: { ...typography.h3 },
   dialogParagraph: { ...typography.body },
+  discountContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
 });
 
 export default DocumentForm;

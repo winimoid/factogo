@@ -48,28 +48,30 @@ export const getNextDocumentNumber = async (storeId, documentType) => {
   });
 };
 
-export const createDocumentForStore = async (storeId, docType, docData) => {
+export const createDocumentForStore = async (storeId, docType, docData, convertedFrom = null) => {
     const db = await getDatabase();
     const tableName = getTableName(docType);
 
-    if (docType === 'delivery_note') {
-        const { document_number, clientName, date, items, total, order_reference, payment_method } = docData;
-        const query = `INSERT INTO ${tableName} (document_number, clientName, date, items, total, storeId, order_reference, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
-        try {
-            await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, storeId, order_reference, payment_method]);
-        } catch (error) {
-            console.error(`Error adding document type ${docType}` , error);
-            throw error;
-        }
-    } else {
-        const { document_number, clientName, date, items, total } = docData;
-        const query = `INSERT INTO ${tableName} (document_number, clientName, date, items, total, storeId) VALUES (?, ?, ?, ?, ?, ?);`;
-        try {
-            await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, storeId]);
-        } catch (error) {
-            console.error(`Error adding document type ${docType}` , error);
-            throw error;
-        }
+    try {
+        await db.transaction(async tx => {
+            if (docType === 'delivery_note') {
+                const { document_number, clientName, date, items, total, order_reference, payment_method } = docData;
+                const query = `INSERT INTO ${tableName} (document_number, clientName, date, items, total, storeId, order_reference, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
+                await tx.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, storeId, order_reference, payment_method]);
+            } else {
+                const { document_number, clientName, date, items, total, discountType, discountValue } = docData;
+                const query = `INSERT INTO ${tableName} (document_number, clientName, date, items, total, storeId, discountType, discountValue) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
+                await tx.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, storeId, discountType, discountValue]);
+            }
+
+            if (convertedFrom) {
+                const updateQuery = `UPDATE quotes SET status = 'Converted' WHERE id = ?;`;
+                await tx.executeSql(updateQuery, [convertedFrom]);
+            }
+        });
+    } catch (error) {
+        console.error(`Error adding document type ${docType}`, error);
+        throw error;
     }
 };
 
@@ -100,10 +102,10 @@ export const updateDocument = async (docId, docType, docData) => {
             throw error;
         }
     } else {
-        const { document_number, clientName, date, items, total } = docData;
-        const query = `UPDATE ${tableName} SET document_number = ?, clientName = ?, date = ?, items = ?, total = ? WHERE id = ?;`;
+        const { document_number, clientName, date, items, total, discountType, discountValue } = docData;
+        const query = `UPDATE ${tableName} SET document_number = ?, clientName = ?, date = ?, items = ?, total = ?, discountType = ?, discountValue = ? WHERE id = ?;`;
         try {
-            await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, docId]);
+            await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, discountType, discountValue, docId]);
         } catch (error) {
             console.error(`Error updating document type ${docType}`, error);
             throw error;

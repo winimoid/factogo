@@ -4,8 +4,6 @@
     "password": "Password",
     "settings": "Impostazioni",
     "language": "Lingua",
-    "english": "Inglese",
-    "french": "Francese",
     "theme": "Tema",
     "light": "Chiaro",
     "dark": "Scuro",
@@ -177,8 +175,16 @@
     "total_summary_commercial": "Si chiude il presente {{documentType}} alla somma di",
     "paid_not_delivered": "PAGATO NON CONSEGNATO",
     "select_language": "Seleziona lingua",
-    "ewe": "Ewe",
+    "french": "Français",
+    "ewe": "Eʋegbe",
     "italian": "Italiano",
-    "spanish": "Spagnolo",
-    "japanese": "Giapponese"
+    "spanish": "Español",
+    "japanese": "日本語",
+    "english": "English",
+    "discount_value": "Valore dello sconto",
+    "discount": "Sconto",
+    "fixed": "Fisso",
+    "percentage": "Percentuale",
+    "convert_to_delivery_note": "Converti in bolla di consegna",
+    "convert_to_invoice": "Converti in fattura"
 }

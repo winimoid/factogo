@@ -10,7 +10,7 @@ const ProfileScreen = () => {
   const { colors } = useTheme();
   const { user, setIsAuthenticated } = useContext(AuthContext);
 
-  const appVersion = '2.1';
+  const appVersion = '2.2.1';
 
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -45,6 +45,7 @@ const ProfileScreen = () => {
             <Title style={styles.cardTitle}>{t('about_developer')}</Title>
             <Paragraph style={styles.paragraph}>{'Mhénsa Moïse WINIGAH'}</Paragraph>
             <Paragraph style={styles.paragraph}>{'Email: moisewinigah@gmail.com'}</Paragraph>
+            <Paragraph style={styles.paragraph}>{'Lomé, Togo'}</Paragraph>
             <Paragraph style={styles.paragraph}>{'Tel: +228 98 38 99 34'}</Paragraph>
             <Divider style={styles.divider} />
             <Button icon="web" mode="outlined" onPress={() => openURL('https://virtualayers.netlify.app')} style={styles.websiteButton}>

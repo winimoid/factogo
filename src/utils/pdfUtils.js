@@ -21,6 +21,21 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
   const isDeliveryNote = type === 'delivery_note';
   const total = item.total || 0;
   const items = item.items ? JSON.parse(item.items) : [];
+  
+  // Calculate values for discount display
+  let totalBeforeDiscount = total;
+  let discountAmount = 0;
+  
+  // Calculate total before discount and discount amount if discount exists
+  if (item.discountValue && item.discountValue > 0) {
+    if (item.discountType === 'percentage') {
+      totalBeforeDiscount = total / (1 - item.discountValue / 100);
+      discountAmount = totalBeforeDiscount * (item.discountValue / 100);
+    } else { // fixed discount
+      totalBeforeDiscount = total + item.discountValue;
+      discountAmount = item.discountValue;
+    }
+  }
 
   const totalInWords = toWords(total, locale, { currency: !isDeliveryNote });
   const totalQuantity = items.reduce((acc, i) => acc + i.quantity, 0);
@@ -128,10 +143,10 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
         .signature-section.single { text-align: right; }
         .signature-box { width: 48%; }
         .signature-images { margin-top: 10px; }
-        .signature-images img { max-height: 60px; margin-left: 20px; }
+        .signature-images img { min-height: 180px; max-height: 180px; margin-left: 20px; }
         .text-bold { font-weight: bold; }
       `;
-      const docTitleHtml = `<div class="document-title">${getDocumentTitle(type)} N° ${item?.document_number || ''}</div><div>${formattedDate}</div>`;
+      const docTitleHtml = `<div class="document-title">${getDocumentTitle(type)} ${t('document_number_prefix')} ${item?.document_number || ''}</div><div>${formattedDate}</div>`;
       let headerDetailsHtml, itemsTableHtml, totalsHtml, signatureHtml;
       if (isDeliveryNote) {
         headerDetailsHtml = `<div>${docTitleHtml}</div><div class="document-details" style="margin-top: 20px;"><div class="order-info"><span class="text-bold">${t('order_reference')}:</span> <span style="color: red;">${item.order_reference || ''}</span><br/><span class="text-bold">${t('payment_method')}:</span> ${item.payment_method || ''}</div><div class="client-info"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>- Libreville -</div></div>`;
@@ -141,7 +156,12 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
       } else {
         headerDetailsHtml = `<div>${docTitleHtml}</div><div style="text-align: right; margin-top: 20px;"><div class="client-info" style="display: inline-block; width: 250px;"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>- Libreville -</div></div>`;
         itemsTableHtml = `<table class="items-table"><thead><tr><th>${t('designation')}</th><th class="text-center">${t('quantity_short')}</th><th class="text-right">${t('unit_price_short')}</th><th class="text-right">${t('total_amount')}</th></tr></thead><tbody>${items.map(i => `<tr><td>${i.description}</td><td class="text-center">${i.quantity}</td><td class="text-right">${i.price.toLocaleString(locale)}</td><td class="text-right">${(i.quantity * i.price).toLocaleString(locale)}</td></tr>`).join('')}</tbody></table>`;
-        totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_ht')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('total_ttc')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr></tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
+        // Generate totals HTML based on whether there is a discount
+        if (discountAmount > 0) {
+          totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_ht')}</td><td class="text-right">${totalBeforeDiscount.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('discount')}</td><td class="text-right">-${discountAmount.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('total_ttc')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr></tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
+        } else {
+          totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_ht')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('total_ttc')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr></tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
+        }
         signatureHtml = `<div class="signature-section single"><span class="text-bold">${t('manager')}</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div>`;
       }
       finalHtml = `<html><head><style>${styles}</style></head><body><table class="document-wrapper"><thead><tr><td><div id="page-header"><div id="page-header-content"><div class="header-flex"><div>${logoBase64 ? `<img src="${logoBase64}" class="header-logo" />` : ''}</div><div class="header-company-details"><p>${headerText}</p></div></div></div></div></td></tr></thead><tbody><tr><td id="main-content">${headerDetailsHtml}${itemsTableHtml}${totalsHtml}${signatureHtml}</td></tr></tbody><tfoot><tr><td><div id="page-footer"><div id="page-footer-content"><p>${footerText}</p></div></div></td></tr></tfoot></table></body></html>`;
@@ -247,7 +267,7 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
         .signature-section.multi { display: flex; justify-content: space-between; text-align: center; }
         .signature-box { width: 48%; /* Assign width to allow text-align to work effectively */ }
         .signature-images { margin-top: 10px; }
-        .signature-images img { max-height: 60px; margin: 0 5px; }
+        .signature-images img { min-height: 180px; max-height: 180px; margin: 0 5px; }
         .table-container { position: relative; }
         .stamp {
           position: absolute;
@@ -368,7 +388,12 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
             <div class="footer-flex" style="justify-content: flex-end;">
               <div class="totals-area">
                 ${item.status ? `<div class="status">${item.status.toUpperCase()}</div>` : ''}
-                <div class="total">${t('total_prefix')} ${total.toLocaleString(locale)}</div>
+                ${discountAmount > 0 
+                  ? `<div class="total">${t('total_ht')}: ${totalBeforeDiscount.toLocaleString(locale)}</div>
+                     <div class="total">${t('discount')}: -${discountAmount.toLocaleString(locale)}</div>
+                     <div class="total">${t('total_ttc')}: ${total.toLocaleString(locale)}</div>`
+                  : `<div class="total">${t('total_prefix')} ${total.toLocaleString(locale)}</div>`
+                }
               </div>
             </div>
             <div class="total-in-words">
@@ -460,10 +485,10 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
         .signature-section.single { text-align: right; }
         .signature-box { width: 48%; }
         .signature-images { margin-top: 10px; }
-        .signature-images img { max-height: 60px; margin-left: 20px; }
+        .signature-images img { min-height: 180px; max-height: 180px; margin-left: 20px; }
         .text-bold { font-weight: bold; }
       `;
-      const docTitleHtml = `<div class="document-title">${getDocumentTitle(type)} N° ${item?.document_number || ''}</div><div>${formattedDate}</div>`;
+      const docTitleHtml = `<div class="document-title">${getDocumentTitle(type)} ${t('document_number_prefix')} ${item?.document_number || ''}</div><div>${formattedDate}</div>`;
       let headerDetailsHtml, itemsTableHtml, totalsHtml, signatureHtml;
       if (isDeliveryNote) {
         headerDetailsHtml = `<div>${docTitleHtml}</div><div class="document-details" style="margin-top: 20px;"><div class="order-info"><span class="text-bold">${t('order_reference')}:</span> <span style="color: red;">${item.order_reference || ''}</span><br/><span class="text-bold">${t('payment_method')}:</span> ${item.payment_method || ''}</div><div class="client-info"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>- Libreville -</div></div>`;
@@ -473,7 +498,12 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
       } else {
         headerDetailsHtml = `<div>${docTitleHtml}</div><div style="text-align: right; margin-top: 20px;"><div class="client-info" style="display: inline-block; width: 250px;"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>- Libreville -</div></div>`;
         itemsTableHtml = `<table class="items-table"><thead><tr><th>${t('designation')}</th><th class="text-center">${t('quantity_short')}</th><th class="text-right">${t('unit_price_short')}</th><th class="text-right">${t('total_amount')}</th></tr></thead><tbody>${items.map(i => `<tr><td>${i.description}</td><td class="text-center">${i.quantity}</td><td class="text-right">${i.price.toLocaleString(locale)}</td><td class="text-right">${(i.quantity * i.price).toLocaleString(locale)}</td></tr>`).join('')}</tbody></table>`;
-        totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_ht')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('total_ttc')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr></tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
+        // Generate totals HTML based on whether there is a discount
+        if (discountAmount > 0) {
+          totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_ht')}</td><td class="text-right">${totalBeforeDiscount.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('discount')}</td><td class="text-right">-${discountAmount.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('total_ttc')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr></tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
+        } else {
+          totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_ht')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('total_ttc')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr></tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
+        }
         signatureHtml = `<div class="signature-section single"><span class="text-bold">${t('manager')}</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div>`;
       }
       finalHtml = `<html><head><style>${styles}</style></head><body><table class="document-wrapper"><thead><tr><td><div id="page-header"><div id="page-header-content"><div class="header-flex"><div>${logoBase64 ? `<img src="${logoBase64}" class="header-logo" />` : ''}</div><div class="header-company-details"><p>${headerText}</p></div></div></div></div></td></tr></thead><tbody><tr><td id="main-content">${headerDetailsHtml}${itemsTableHtml}${totalsHtml}${signatureHtml}</td></tr></tbody><tfoot><tr><td><div id="page-footer"><div id="page-footer-content"><p>${footerText}</p></div></div></td></tr></tfoot></table></body></html>`;

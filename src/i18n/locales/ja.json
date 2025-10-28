@@ -4,8 +4,6 @@
     "password": "パスワード",
     "settings": "設定",
     "language": "言語",
-    "english": "英語",
-    "french": "フランス語",
     "theme": "テーマ",
     "light": "ライト",
     "dark": "ダーク",
@@ -177,7 +175,16 @@
     "total_summary_commercial": "本{{documentType}}の合計金額：",
     "paid_not_delivered": "支払済 未納品",
     "select_language": "言語を選択",
-    "ewe": "エウェ語",
-    "spanish": "スペイン語",
-    "japanese": "日本語"
+    "french": "Français",
+    "ewe": "Eʋegbe",
+    "italian": "Italiano",
+    "spanish": "Español",
+    "japanese": "日本語",
+    "english": "English",
+    "discount_value": "割引額",
+    "discount": "割引",
+    "fixed": "固定",
+    "percentage": "パーセンテージ",
+    "convert_to_delivery_note": "納品書に変換",
+    "convert_to_invoice": "請求書に変換"
 }
