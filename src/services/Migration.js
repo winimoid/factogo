@@ -32,6 +32,27 @@ const migrations = [
       `ALTER TABLE quotes ADD COLUMN status TEXT;`,
     ],
   },
+  {
+    version: 3,
+    queries: [
+      `ALTER TABLE invoices ADD COLUMN deposit REAL DEFAULT 0;`,
+      `ALTER TABLE invoices ADD COLUMN has_gst INTEGER DEFAULT 0;`,
+      `ALTER TABLE invoices ADD COLUMN gst_rate REAL DEFAULT 1.0;`,
+      `ALTER TABLE invoices ADD COLUMN clientAddress TEXT;`,
+      `ALTER TABLE invoices ADD COLUMN clientEmail TEXT;`,
+      `ALTER TABLE invoices ADD COLUMN clientPhone TEXT;`,
+      `ALTER TABLE quotes ADD COLUMN deposit REAL DEFAULT 0;`,
+      `ALTER TABLE quotes ADD COLUMN has_gst INTEGER DEFAULT 0;`,
+      `ALTER TABLE quotes ADD COLUMN gst_rate REAL DEFAULT 1.0;`,
+      `ALTER TABLE quotes ADD COLUMN clientAddress TEXT;`,
+      `ALTER TABLE quotes ADD COLUMN clientEmail TEXT;`,
+      `ALTER TABLE quotes ADD COLUMN clientPhone TEXT;`,
+      `ALTER TABLE delivery_notes ADD COLUMN clientAddress TEXT;`,
+      `ALTER TABLE delivery_notes ADD COLUMN clientEmail TEXT;`,
+      `ALTER TABLE delivery_notes ADD COLUMN clientPhone TEXT;`,
+      `ALTER TABLE stores ADD COLUMN default_gst_rate REAL DEFAULT 1.0;`,
+    ],
+  },
 ];
 
 export const runMigrations = async (db) => {

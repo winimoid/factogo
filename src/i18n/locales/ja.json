@@ -186,5 +186,20 @@
     "fixed": "固定",
     "percentage": "パーセンテージ",
     "convert_to_delivery_note": "納品書に変換",
-    "convert_to_invoice": "請求書に変換"
+    "convert_to_invoice": "請求書に変換",
+    "deposit": "内金",
+    "has_gst": "GST (1%) を適用",
+    "gst_rate": "GST率 (%)",
+    "gst_label": "GST",
+    "balance_due": "差引残高",
+    "deposit_paid": "内金支払済",
+    "customer_suggestions": "顧客の提案",
+    "whats_new_title": "バージョン 3.0 の新機能",
+    "whats_new_deposit": "請求書や見積書の内金を管理できます。",
+    "whats_new_gst": "ドキュメントに設定可能な GST 税を適用できます。",
+    "whats_new_suggestions": "自動入力の提案により、リピーターを素早く選択できます。",
+    "client_address": "住所",
+    "client_email": "メール",
+    "client_phone": "電話",
+    "default_gst_rate": "デフォルトのGST率 (%)"
 }

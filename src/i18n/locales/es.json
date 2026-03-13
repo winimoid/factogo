@@ -186,5 +186,20 @@
     "fixed": "Fijo",
     "percentage": "Porcentaje",
     "convert_to_delivery_note": "Convertir en albarán",
-    "convert_to_invoice": "Convertir en factura"
+    "convert_to_invoice": "Convertir en factura",
+    "deposit": "Anticipo",
+    "has_gst": "Aplicar GST (1%)",
+    "gst_rate": "Tasa de GST (%)",
+    "gst_label": "GST",
+    "balance_due": "Saldo pendiente",
+    "deposit_paid": "Anticipo pagado",
+    "customer_suggestions": "Sugerencias de clientes",
+    "whats_new_title": "Novedades de la versión 3.0",
+    "whats_new_deposit": "Gestione anticipos en sus facturas y presupuestos.",
+    "whats_new_gst": "Aplique impuestos GST configurables a sus documentos.",
+    "whats_new_suggestions": "Seleccione rápidamente clientes recurrentes con sugerencias de autocompletado.",
+    "client_address": "Dirección",
+    "client_email": "Correo electrónico",
+    "client_phone": "Teléfono",
+    "default_gst_rate": "Tasa de GST predeterminada (%)"
 }

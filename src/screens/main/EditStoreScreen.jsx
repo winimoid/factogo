@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
-import { TextInput, Button, Card, useTheme, Text, Title, Menu } from 'react-native-paper';
+import { View, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { TextInput, Button, Card, useTheme, Text, Title, Menu, HelperText } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { launchImageLibrary } from 'react-native-image-picker';
 import fs from 'react-native-fs';
@@ -9,6 +9,7 @@ import { getStore, createStore, updateStore } from '../../services/StoreService'
 import { getDocumentTemplates } from '../../services/DocumentTemplateService';
 import { LanguageContext } from '../../contexts/LanguageContext';
 import { typography } from '../../styles/typography';
+import { validateStoreSettings } from '../../utils/validation';
 
 const EditStoreScreen = ({ route, navigation }) => {
   const { storeId } = route.params || {};
@@ -22,10 +23,12 @@ const EditStoreScreen = ({ route, navigation }) => {
   const [stampUrl, setStampUrl] = useState(null);
   const [headerText, setHeaderText] = useState('');
   const [footerText, setFooterText] = useState('');
+  const [defaultGstRate, setDefaultGstRate] = useState(1.0);
   const [documentTemplateId, setDocumentTemplateId] = useState(1); // Default to 1
   const [templates, setTemplates] = useState([]);
   const [menuVisible, setMenuVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const isEditing = storeId !== undefined;
 
@@ -43,6 +46,7 @@ const EditStoreScreen = ({ route, navigation }) => {
           setSignatureUrl(store.signatureUrl || null);
           setStampUrl(store.stampUrl || null);
           setDocumentTemplateId(store.documentTemplateId || 1);
+          setDefaultGstRate(store.default_gst_rate !== undefined ? store.default_gst_rate : 1.0);
           
           // Handle customTexts parsing
           if (store.customTexts) {
@@ -87,9 +91,25 @@ const EditStoreScreen = ({ route, navigation }) => {
   };
 
   const handleSave = async () => {
+    // Validation
+    const validation = validateStoreSettings({ default_gst_rate: defaultGstRate });
+    if (!validation.isValid) {
+      setErrors(validation.errors);
+      return;
+    }
+    setErrors({});
+
     setLoading(true);
     const customTexts = JSON.stringify({ header: headerText, footer: footerText });
-    const storeData = { name, logoUrl, signatureUrl, stampUrl, customTexts, documentTemplateId };
+    const storeData = { 
+      name, 
+      logoUrl, 
+      signatureUrl, 
+      stampUrl, 
+      customTexts, 
+      documentTemplateId,
+      default_gst_rate: defaultGstRate 
+    };
     
     try {
       if (isEditing) {
@@ -102,6 +122,7 @@ const EditStoreScreen = ({ route, navigation }) => {
       navigation.goBack();
     } catch (error) {
       console.error("Failed to save store", error);
+      Alert.alert(t('error'), t('error_saving_store'));
     } finally {
       setLoading(false);
     }
@@ -174,6 +195,20 @@ const EditStoreScreen = ({ route, navigation }) => {
               />
             ))}
           </Menu>
+          
+          <TextInput
+            label={t('default_gst_rate')}
+            value={defaultGstRate.toString()}
+            onChangeText={text => setDefaultGstRate(parseFloat(text) || 0)}
+            keyboardType="numeric"
+            style={styles.input}
+            mode="outlined"
+            error={!!errors.default_gst_rate}
+            disabled={loading}
+          />
+          <HelperText type="error" visible={!!errors.default_gst_rate}>
+            {errors.default_gst_rate}
+          </HelperText>
           
           {renderImagePicker(t('logo'), logoUrl, setLogoUrl, 'image-plus')}
           {renderImagePicker(t('signature'), signatureUrl, setSignatureUrl, 'signature-freehand')}

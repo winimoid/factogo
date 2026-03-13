@@ -186,5 +186,20 @@
     "fixed": "Fisso",
     "percentage": "Percentuale",
     "convert_to_delivery_note": "Converti in bolla di consegna",
-    "convert_to_invoice": "Converti in fattura"
+    "convert_to_invoice": "Converti in fattura",
+    "deposit": "Acconto",
+    "has_gst": "Applica GST (1%)",
+    "gst_rate": "Aliquota GST (%)",
+    "gst_label": "GST",
+    "balance_due": "Saldo dovuto",
+    "deposit_paid": "Acconto versato",
+    "customer_suggestions": "Suggerimenti clienti",
+    "whats_new_title": "Novità della versione 3.0",
+    "whats_new_deposit": "Gestisci gli acconti sulle tue fatture e preventivi.",
+    "whats_new_gst": "Applica la tassa GST configurabile ai tuoi documenti.",
+    "whats_new_suggestions": "Seleziona rapidamente i clienti abituali con i suggerimenti di compilazione automatica.",
+    "client_address": "Indirizzo",
+    "client_email": "E-mail",
+    "client_phone": "Telefono",
+    "default_gst_rate": "Aliquota GST predefinita (%)"
 }

@@ -3,10 +3,21 @@ import { getDatabase } from './Database';
 // Store functions
 export const createStore = async (storeData) => {
   const db = await getDatabase();
-  const { ownerUserId, name, logoUrl, signatureUrl, stampUrl, documentTemplateId, customTexts } = storeData;
-  const query = 'INSERT INTO Stores (ownerUserId, name, logoUrl, signatureUrl, stampUrl, documentTemplateId, customTexts, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?);';
+  const { 
+    ownerUserId, name, logoUrl, signatureUrl, stampUrl, 
+    documentTemplateId, customTexts, default_gst_rate 
+  } = storeData;
+  const query = `
+    INSERT INTO Stores (
+      ownerUserId, name, logoUrl, signatureUrl, stampUrl, 
+      documentTemplateId, customTexts, default_gst_rate, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+  `;
   try {
-    const result = await db.executeSql(query, [ownerUserId, name, logoUrl, signatureUrl, stampUrl, documentTemplateId, customTexts, 'active']);
+    const result = await db.executeSql(query, [
+      ownerUserId, name, logoUrl, signatureUrl, stampUrl, 
+      documentTemplateId, customTexts, default_gst_rate || 1.0, 'active'
+    ]);
     return result[0].insertId;
   } catch (error) {
     console.error('Error creating store', error);
@@ -40,10 +51,21 @@ export const getStoresForUser = async (userId) => {
 
 export const updateStore = async (storeId, storeData) => {
   const db = await getDatabase();
-  const { name, logoUrl, signatureUrl, stampUrl, documentTemplateId, customTexts } = storeData;
-  const query = 'UPDATE Stores SET name = ?, logoUrl = ?, signatureUrl = ?, stampUrl = ?, documentTemplateId = ?, customTexts = ? WHERE storeId = ?;';
+  const { 
+    name, logoUrl, signatureUrl, stampUrl, 
+    documentTemplateId, customTexts, default_gst_rate 
+  } = storeData;
+  const query = `
+    UPDATE Stores SET 
+      name = ?, logoUrl = ?, signatureUrl = ?, stampUrl = ?, 
+      documentTemplateId = ?, customTexts = ?, default_gst_rate = ? 
+    WHERE storeId = ?;
+  `;
   try {
-    await db.executeSql(query, [name, logoUrl, signatureUrl, stampUrl, documentTemplateId, customTexts, storeId]);
+    await db.executeSql(query, [
+      name, logoUrl, signatureUrl, stampUrl, 
+      documentTemplateId, customTexts, default_gst_rate, storeId
+    ]);
   } catch (error) {
     console.error('Error updating store', error);
     throw error;

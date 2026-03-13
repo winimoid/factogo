@@ -1,20 +1,26 @@
 import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
-import { View, StyleSheet, FlatList, Platform } from 'react-native';
-import { TextInput, Button, Text, useTheme, IconButton, Card, Title, ActivityIndicator, Portal, Dialog, Paragraph, Switch } from 'react-native-paper';
+import { View, StyleSheet, FlatList, Platform, Alert, ScrollView } from 'react-native';
+import { TextInput, Button, Text, useTheme, IconButton, Card, Title, ActivityIndicator, Portal, Dialog, Paragraph, Switch, HelperText } from 'react-native-paper';
 import { DatePickerModal } from 'react-native-paper-dates';
 import { LanguageContext } from '../contexts/LanguageContext';
 import { useStore } from '../contexts/StoreContext';
-import { getNextDocumentNumber, createDocumentForStore, updateDocument } from '../services/DocumentService';
+import { getNextDocumentNumber, createDocumentForStore, updateDocument, getUniqueCustomers } from '../services/DocumentService';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import RNPrint from 'react-native-print';
 import Share from 'react-native-share';
 import fs from 'react-native-fs';
 import { typography } from '../styles/typography';
 import { generatePdfHtml } from '../utils/pdfUtils';
+import Autocomplete from './Autocomplete';
+import { calculateTotals } from '../utils/calculations';
+import { validateDocumentInputs } from '../utils/validation';
 
 const DocumentForm = ({ route, navigation, documentType }) => {
   // Common State
   const [clientName, setClientName] = useState('');
+  const [clientAddress, setClientAddress] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
   const [date, setDate] = useState(new Date());
   const [items, setItems] = useState([{ description: '', quantity: 1, price: 0 }]);
   const [loadingPdf, setLoadingPdf] = useState(false);
@@ -22,6 +28,8 @@ const DocumentForm = ({ route, navigation, documentType }) => {
   const [downloadDialogVisible, setDownloadDialogVisible] = useState(false);
   const [downloadPath, setDownloadPath] = useState('');
   const [includeSignature, setIncludeSignature] = useState(true);
+  const [uniqueCustomers, setUniqueCustomers] = useState([]);
+  const [errors, setErrors] = useState({});
 
   // Numbering State
   const [officialDocumentNumber, setOfficialDocumentNumber] = useState('');
@@ -34,6 +42,15 @@ const DocumentForm = ({ route, navigation, documentType }) => {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [discountType, setDiscountType] = useState('percentage'); // 'percentage' or 'fixed'
   const [discountValue, setDiscountValue] = useState(0);
+  
+  // New Fields
+  const [deposit, setDeposit] = useState(0);
+  const [showDeposit, setShowDeposit] = useState(false);
+  const [hasGst, setHasGst] = useState(false);
+  const [gstRate, setGstRate] = useState(1.0);
+  const [gstAmount, setGstAmount] = useState(0);
+  const [balanceDue, setBalanceDue] = useState(0);
+  const [grandTotal, setGrandTotal] = useState(0);
 
   const { t, locale } = useContext(LanguageContext);
   const { colors } = useTheme();
@@ -43,10 +60,23 @@ const DocumentForm = ({ route, navigation, documentType }) => {
   const isDeliveryNote = useMemo(() => documentType === 'delivery_note', [documentType]);
 
   useEffect(() => {
+    const loadCustomers = async () => {
+      if (storeId) {
+        const customers = await getUniqueCustomers(storeId);
+        setUniqueCustomers(customers);
+      }
+    };
+    loadCustomers();
+  }, [storeId]);
+
+  useEffect(() => {
     const loadDocument = async () => {
       if (document) {
         // Editing an existing document
         setClientName(document.clientName);
+        setClientAddress(document.clientAddress || '');
+        setClientEmail(document.clientEmail || '');
+        setClientPhone(document.clientPhone || '');
         setOfficialDocumentNumber(document.document_number);
         setDisplayNumber(document.document_number);
         if (document.date && typeof document.date === 'string') {
@@ -56,16 +86,21 @@ const DocumentForm = ({ route, navigation, documentType }) => {
           } else { setDate(new Date()); }
         } else { setDate(new Date()); }
         setItems(document.items ? JSON.parse(document.items) : []);
-        setTotal(document.total);
         setDiscountType(document.discountType || 'percentage');
         setDiscountValue(document.discountValue || 0);
+        
+        // Load new fields
+        setDeposit(document.deposit || 0);
+        setShowDeposit((document.deposit || 0) > 0);
+        setHasGst(!!document.has_gst);
+        setGstRate(document.gst_rate !== undefined ? document.gst_rate : (activeStore?.default_gst_rate || 1.0));
 
         if (isDeliveryNote) {
           setOrderReference(document.order_reference || '');
           setPaymentMethod(document.payment_method || '');
         }
 
-        if (!document.document_number) {console.log(document, storeId, documentType);
+        if (!document.document_number) {
           const newDocNumber = await getNextDocumentNumber(storeId, documentType);
           setOfficialDocumentNumber(newDocNumber);
           setDisplayNumber(newDocNumber);
@@ -75,27 +110,33 @@ const DocumentForm = ({ route, navigation, documentType }) => {
         const newDocNumber = await getNextDocumentNumber(storeId, documentType);
         setOfficialDocumentNumber(newDocNumber);
         setDisplayNumber(newDocNumber);
+        // Default GST rate from store
+        if (activeStore?.default_gst_rate) {
+          setGstRate(activeStore.default_gst_rate);
+        }
       }
     };
 
     loadDocument();
-  }, [document, documentType, isDeliveryNote, storeId]);
-
-  const calculateTotals = useCallback(() => {
-    let newTotal = items.reduce((acc, item) => acc + item.quantity * item.price, 0);
-    if (discountType === 'percentage') {
-      newTotal = newTotal * (1 - discountValue / 100);
-    } else {
-      newTotal = newTotal - discountValue;
-    }
-    setTotal(newTotal < 0 ? 0 : newTotal);
-    const newTotalQuantity = items.reduce((acc, item) => acc + item.quantity, 0);
-    setTotalQuantity(newTotalQuantity);
-  }, [items, discountType, discountValue]);
+  }, [document, documentType, isDeliveryNote, storeId, activeStore]);
 
   useEffect(() => {
-    calculateTotals();
-  }, [calculateTotals]);
+    const result = calculateTotals(
+      items, 
+      discountValue, 
+      discountType === 'percentage', 
+      hasGst ? gstRate : 0, 
+      showDeposit ? deposit : 0
+    );
+    
+    setTotal(result.netTotal); // Base total (after discount, before GST)
+    setGstAmount(result.gstAmount);
+    setGrandTotal(result.grandTotal);
+    setBalanceDue(result.balanceDue);
+    
+    const newTotalQuantity = items.reduce((acc, item) => acc + item.quantity, 0);
+    setTotalQuantity(newTotalQuantity);
+  }, [items, discountType, discountValue, hasGst, gstRate, deposit, showDeposit]);
 
   const handleAddItem = () => {
     setItems([...items, { description: '', quantity: 1, price: 0 }]);
@@ -112,14 +153,45 @@ const DocumentForm = ({ route, navigation, documentType }) => {
     setItems(newItems);
   };
 
+  const handleClientSelect = (client) => {
+    setClientName(client.clientName);
+    setClientAddress(client.clientAddress || '');
+    setClientEmail(client.clientEmail || '');
+    setClientPhone(client.clientPhone || '');
+  };
+
   const handleSave = async () => {
+    // Validation
+    const validation = validateDocumentInputs({
+      deposit: showDeposit ? deposit : 0,
+      clientEmail
+    });
+
+    if (!validation.isValid) {
+      setErrors(validation.errors);
+      Alert.alert(t('error'), Object.values(validation.errors).join('\n'));
+      return;
+    }
+    
+    if (!clientName.trim()) {
+      Alert.alert(t('error'), t('client_name_required'));
+      return;
+    }
+
     let newDocument = { 
-      document_number: displayNumber, // Always save the official number
+      document_number: displayNumber, 
       clientName, 
+      clientAddress,
+      clientEmail,
+      clientPhone,
       date: date.toISOString().split('T')[0], 
       items, 
       discountType,
       discountValue,
+      deposit: showDeposit ? deposit : 0,
+      has_gst: hasGst,
+      gst_rate: gstRate,
+      total: grandTotal // Saving grand total for consistency with existing "total" column meaning
     };
 
     if (isDeliveryNote) {
@@ -129,8 +201,12 @@ const DocumentForm = ({ route, navigation, documentType }) => {
         order_reference: orderReference, 
         payment_method: paymentMethod 
       };
-    } else {
-      newDocument = { ...newDocument, total };
+      // Remove irrelevant fields for delivery note
+      delete newDocument.deposit;
+      delete newDocument.has_gst;
+      delete newDocument.gst_rate;
+      delete newDocument.discountType;
+      delete newDocument.discountValue;
     }
 
     if (document && document.id) {
@@ -151,21 +227,42 @@ const DocumentForm = ({ route, navigation, documentType }) => {
   }
 
   const handlePdfAction = async (action) => {
+    // Same validation as save
+    const validation = validateDocumentInputs({
+        deposit: showDeposit ? deposit : 0,
+        clientEmail
+    });
+  
+    if (!validation.isValid) {
+        setErrors(validation.errors);
+        Alert.alert(t('error'), Object.values(validation.errors).join('\n'));
+        return;
+    }
+
     setLoadingPdf(true);
     try {
       if (!activeStore) { return; }
 
       const documentData = {
         id: document?.id,
-        document_number: displayNumber, // Use the display number for the PDF
+        document_number: displayNumber,
         clientName,
+        clientAddress,
+        clientEmail,
+        clientPhone,
         date: date.toISOString(),
         items: JSON.stringify(items),
-        total: isDeliveryNote ? totalQuantity : total,
+        total: isDeliveryNote ? totalQuantity : grandTotal,
+        subtotal: total, // Passing the net total (after discount) as subtotal
         order_reference: orderReference,
         payment_method: paymentMethod,
         discountType,
         discountValue,
+        deposit: showDeposit ? deposit : 0,
+        has_gst: hasGst,
+        gst_rate: gstRate,
+        gst_amount: gstAmount,
+        balance_due: balanceDue
       };
 
       const htmlContent = await generatePdfHtml(documentData, documentType, activeStore, t, locale, includeSignature, colors.primary);
@@ -215,11 +312,59 @@ const DocumentForm = ({ route, navigation, documentType }) => {
     }
   };
 
+  const headerContent = useMemo(() => (
+    <View style={styles.contentPadding}>
+      <Card style={styles.card} elevation={4}>
+        <Card.Content>
+          <Title style={styles.cardTitle}>{getDocumentTitle(documentType)}</Title>
+          <TextInput label={`${t(documentType)} ${t('document_number_prefix')}`} value={displayNumber} onChangeText={setDisplayNumber} style={styles.input} mode="outlined" />
+          
+          <Autocomplete
+            label={t('client_name')}
+            value={clientName}
+            onChangeText={setClientName}
+            onSelect={handleClientSelect}
+            data={uniqueCustomers}
+            filterKey="clientName"
+            placeholder={t('client_name')}
+            style={styles.input}
+          />
+
+          <TextInput label={t('client_address')} value={clientAddress} onChangeText={setClientAddress} style={styles.input} mode="outlined" />
+          <TextInput label={t('client_email')} value={clientEmail} onChangeText={setClientEmail} style={styles.input} mode="outlined" error={!!errors.clientEmail} />
+          <HelperText type="error" visible={!!errors.clientEmail}>{errors.clientEmail}</HelperText>
+          
+          <TextInput label={t('client_phone')} value={clientPhone} onChangeText={setClientPhone} style={styles.input} mode="outlined" keyboardType="phone-pad" />
+          
+          <TextInput label={t('date')} value={date.toISOString().split('T')[0]} onFocus={() => setIsDatePickerVisible(true)} showSoftInputOnFocus={false} style={styles.input} mode="outlined" right={<TextInput.Icon icon="calendar" onPress={() => setIsDatePickerVisible(true)} />} />
+        </Card.Content>
+      </Card>
+
+      {isDeliveryNote && (
+        <Card style={styles.card} elevation={4}>
+          <Card.Content>
+            <Title style={styles.cardTitle}>{t('delivery_note')}</Title>
+            <TextInput label={t('order_reference')} value={orderReference} onChangeText={setOrderReference} style={styles.input} mode="outlined" />
+            <TextInput label={t('payment_method')} value={paymentMethod} onChangeText={setPaymentMethod} style={styles.input} mode="outlined" />
+          </Card.Content>
+        </Card>
+      )}
+
+      <Card style={styles.card} elevation={4}>
+        <Card.Content>
+          <Title style={styles.cardTitle}>{t('items')}</Title>
+          <Button onPress={handleAddItem} mode="outlined" icon="plus-circle-outline" style={styles.addItemButton} labelStyle={styles.buttonLabel}>{t('add_item')}</Button>
+        </Card.Content>
+      </Card>
+    </View>
+  ), [documentType, displayNumber, clientName, uniqueCustomers, clientAddress, clientEmail, errors, clientPhone, date, isDatePickerVisible, isDeliveryNote, orderReference, paymentMethod, t, colors, handleClientSelect, handleAddItem]);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
         data={items}
         keyExtractor={(item, index) => index.toString()}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item, index }) => (
           <View style={[styles.itemContainer, { backgroundColor: colors.surface }]}>
             <TextInput label={t('item')} value={item.description} onChangeText={(value) => handleItemChange(index, 'description', value)} style={styles.itemInput} mode="outlined" />
@@ -230,69 +375,90 @@ const DocumentForm = ({ route, navigation, documentType }) => {
             <IconButton icon="close-circle" color={colors.error} size={20} onPress={() => handleRemoveItem(index)} />
           </View>
         )}
-        ListHeaderComponent={(
-          <View style={styles.contentPadding}>
-            <Card style={styles.card} elevation={4}>
-              <Card.Content>
-                <Title style={styles.cardTitle}>{getDocumentTitle(documentType)}</Title>
-                <TextInput label={`${t(documentType)} ${t('document_number_prefix')}`} value={displayNumber} onChangeText={setDisplayNumber} style={styles.input} mode="outlined" />
-                <TextInput label={t('client_name')} value={clientName} onChangeText={setClientName} style={styles.input} mode="outlined" />
-                <TextInput label={t('date')} value={date.toISOString().split('T')[0]} onFocus={() => setIsDatePickerVisible(true)} showSoftInputOnFocus={false} style={styles.input} mode="outlined" right={<TextInput.Icon icon="calendar" onPress={() => setIsDatePickerVisible(true)} />} />
-              </Card.Content>
-            </Card>
-
-            {isDeliveryNote && (
-              <Card style={styles.card} elevation={4}>
-                <Card.Content>
-                  <Title style={styles.cardTitle}>{t('delivery_note')}</Title>
-                  <TextInput label={t('order_reference')} value={orderReference} onChangeText={setOrderReference} style={styles.input} mode="outlined" />
-                  <TextInput label={t('payment_method')} value={paymentMethod} onChangeText={setPaymentMethod} style={styles.input} mode="outlined" />
-                </Card.Content>
-              </Card>
-            )}
-
-            <Card style={styles.card} elevation={4}>
-              <Card.Content>
-                <Title style={styles.cardTitle}>{t('items')}</Title>
-                <Button onPress={handleAddItem} mode="outlined" icon="plus-circle-outline" style={styles.addItemButton} labelStyle={styles.buttonLabel}>{t('add_item')}</Button>
-              </Card.Content>
-            </Card>
-          </View>
-        )}
+        ListHeaderComponent={headerContent}
         ListFooterComponent={(
           <View style={styles.contentPadding}>
+            {!isDeliveryNote && (
             <Card style={styles.card} elevation={4}>
               <Card.Content>
                 <Title style={styles.cardTitle}>{t('discount')}</Title>
-                <View style={styles.discountContainer}>
+                <View style={styles.switchContainer}>
+                  <Text>{t('percentage')}</Text>
                   <Switch
-                    value={discountType === 'percentage'}
+                    value={discountType === 'fixed'}
                     onValueChange={() => setDiscountType(discountType === 'percentage' ? 'fixed' : 'percentage')}
                   />
-                  <Text>{discountType === 'percentage' ? t('percentage') : t('fixed')}</Text>
+                  <Text>{t('fixed')}</Text>
                 </View>
                 <TextInput
                   label={t('discount_value')}
                   value={discountValue.toString()}
-                  onChangeText={setDiscountValue}
+                  onChangeText={text => setDiscountValue(parseFloat(text) || 0)}
                   keyboardType="numeric"
                   style={styles.input}
                   mode="outlined"
                 />
+
+                <Title style={[styles.cardTitle, { marginTop: 15 }]}>{t('deposit')}</Title>
+                <View style={styles.switchContainer}>
+                   <Text>{t('deposit')}</Text>
+                   <Switch value={showDeposit} onValueChange={setShowDeposit} />
+                </View>
+                {showDeposit && (
+                  <>
+                  <TextInput
+                    label={t('deposit_paid')}
+                    value={deposit.toString()}
+                    onChangeText={text => setDeposit(parseFloat(text) || 0)}
+                    keyboardType="numeric"
+                    style={styles.input}
+                    mode="outlined"
+                    error={!!errors.deposit}
+                  />
+                  <HelperText type="error" visible={!!errors.deposit}>{errors.deposit}</HelperText>
+                  </>
+                )}
+
+                <Title style={[styles.cardTitle, { marginTop: 15 }]}>{t('gst_label')}</Title>
+                <View style={styles.switchContainer}>
+                   <Text>{t('has_gst')}</Text>
+                   <Switch value={hasGst} onValueChange={setHasGst} />
+                </View>
+                {hasGst && (
+                  <TextInput
+                    label={t('gst_rate')}
+                    value={gstRate.toString()}
+                    onChangeText={text => setGstRate(parseFloat(text) || 0)}
+                    keyboardType="numeric"
+                    style={styles.input}
+                    mode="outlined"
+                  />
+                )}
               </Card.Content>
             </Card>
+            )}
 
             <Card style={styles.card} elevation={4}>
               <Card.Content>
                 {isDeliveryNote ? (
                   <Text style={styles.total}>{t('total_quantity')}: {totalQuantity}</Text>
                 ) : (
-                  <Text style={styles.total}>{t('total')}: {total.toLocaleString(locale)}</Text>
+                  <>
+                    <Text style={styles.subtotal}>{t('total_ht')}: {total.toLocaleString(locale)}</Text>
+                    {hasGst && <Text style={styles.subtotal}>{t('gst_label')} ({gstRate}%): {gstAmount.toLocaleString(locale)}</Text>}
+                    <Text style={styles.total}>{t('total_ttc')}: {grandTotal.toLocaleString(locale)}</Text>
+                    {showDeposit && (
+                      <>
+                        <Text style={styles.subtotal}>{t('deposit_paid')}: -{deposit.toLocaleString(locale)}</Text>
+                        <Text style={[styles.total, {color: colors.primary}]}>{t('balance_due')}: {balanceDue.toLocaleString(locale)}</Text>
+                      </>
+                    )}
+                  </>
                 )}
               </Card.Content>
             </Card>
 
-            <View style={[styles.signatureSwitchContainer, {borderColor: colors.outline}]}>
+            <View style={[styles.switchContainer, {borderColor: colors.outline, borderWidth: 1, padding: 10, borderRadius: 8, justifyContent: 'space-between'}]}>
               <Text style={[typography.body, {color: colors.onSurface}]}>{t('include_signature_stamp')}</Text>
               <Switch value={includeSignature} onValueChange={setIncludeSignature} />
             </View>
@@ -340,11 +506,12 @@ const styles = StyleSheet.create({
   itemContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, padding: 8 },
   itemInput: { flex: 1, marginHorizontal: 2, fontFamily: 'Outfit-Regular' },
   addItemButton: { marginTop: 10, marginBottom: 10 },
-  total: { ...typography.bodyBold, textAlign: 'right', marginVertical: 10 },
+  total: { ...typography.bodyBold, textAlign: 'right', marginVertical: 5, fontSize: 18 },
+  subtotal: { ...typography.body, textAlign: 'right', marginVertical: 2 },
   button: { marginTop: 10, paddingVertical: 8 },
   buttonLabel: { fontFamily: 'Outfit-SemiBold', fontSize: 16 },
   contentPadding: { padding: 20 },
-  signatureSwitchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 15, padding: 10, borderRadius: 8, borderWidth: 1 },
+  switchContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   buttonRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -358,7 +525,6 @@ const styles = StyleSheet.create({
   },
   dialogTitle: { ...typography.h3 },
   dialogParagraph: { ...typography.body },
-  discountContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
 });
 
 export default DocumentForm;

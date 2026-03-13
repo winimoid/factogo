@@ -55,13 +55,33 @@ export const createDocumentForStore = async (storeId, docType, docData, converte
     try {
         await db.transaction(async tx => {
             if (docType === 'delivery_note') {
-                const { document_number, clientName, date, items, total, order_reference, payment_method } = docData;
-                const query = `INSERT INTO ${tableName} (document_number, clientName, date, items, total, storeId, order_reference, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
-                await tx.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, storeId, order_reference, payment_method]);
+                const { 
+                  document_number, clientName, date, items, total, order_reference, payment_method,
+                  clientAddress, clientEmail, clientPhone 
+                } = docData;
+                const query = `INSERT INTO ${tableName} (
+                  document_number, clientName, date, items, total, storeId, order_reference, payment_method,
+                  clientAddress, clientEmail, clientPhone
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`;
+                
+                await tx.executeSql(query, [
+                  document_number, clientName, date, JSON.stringify(items), total, storeId, order_reference, payment_method,
+                  clientAddress, clientEmail, clientPhone
+                ]);
             } else {
-                const { document_number, clientName, date, items, total, discountType, discountValue } = docData;
-                const query = `INSERT INTO ${tableName} (document_number, clientName, date, items, total, storeId, discountType, discountValue) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
-                await tx.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, storeId, discountType, discountValue]);
+                const { 
+                  document_number, clientName, date, items, total, discountType, discountValue,
+                  deposit, has_gst, gst_rate, clientAddress, clientEmail, clientPhone
+                } = docData;
+                const query = `INSERT INTO ${tableName} (
+                  document_number, clientName, date, items, total, storeId, discountType, discountValue,
+                  deposit, has_gst, gst_rate, clientAddress, clientEmail, clientPhone
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`;
+                
+                await tx.executeSql(query, [
+                  document_number, clientName, date, JSON.stringify(items), total, storeId, discountType, discountValue,
+                  deposit || 0, has_gst ? 1 : 0, gst_rate || 0, clientAddress, clientEmail, clientPhone
+                ]);
             }
 
             if (convertedFrom) {
@@ -93,19 +113,39 @@ export const updateDocument = async (docId, docType, docData) => {
     const tableName = getTableName(docType);
 
     if (docType === 'delivery_note') {
-        const { document_number, clientName, date, items, total, order_reference, payment_method } = docData;
-        const query = `UPDATE ${tableName} SET document_number = ?, clientName = ?, date = ?, items = ?, total = ?, order_reference = ?, payment_method = ? WHERE id = ?;`;
+        const { 
+          document_number, clientName, date, items, total, order_reference, payment_method,
+          clientAddress, clientEmail, clientPhone
+        } = docData;
+        const query = `UPDATE ${tableName} SET 
+          document_number = ?, clientName = ?, date = ?, items = ?, total = ?, order_reference = ?, payment_method = ?,
+          clientAddress = ?, clientEmail = ?, clientPhone = ?
+          WHERE id = ?;`;
         try {
-            await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, order_reference, payment_method, docId]);
+            await db.executeSql(query, [
+              document_number, clientName, date, JSON.stringify(items), total, order_reference, payment_method,
+              clientAddress, clientEmail, clientPhone,
+              docId
+            ]);
         } catch (error) {
             console.error(`Error updating document type ${docType}`, error);
             throw error;
         }
     } else {
-        const { document_number, clientName, date, items, total, discountType, discountValue } = docData;
-        const query = `UPDATE ${tableName} SET document_number = ?, clientName = ?, date = ?, items = ?, total = ?, discountType = ?, discountValue = ? WHERE id = ?;`;
+        const { 
+          document_number, clientName, date, items, total, discountType, discountValue,
+          deposit, has_gst, gst_rate, clientAddress, clientEmail, clientPhone
+        } = docData;
+        const query = `UPDATE ${tableName} SET 
+          document_number = ?, clientName = ?, date = ?, items = ?, total = ?, discountType = ?, discountValue = ?,
+          deposit = ?, has_gst = ?, gst_rate = ?, clientAddress = ?, clientEmail = ?, clientPhone = ?
+          WHERE id = ?;`;
         try {
-            await db.executeSql(query, [document_number, clientName, date, JSON.stringify(items), total, discountType, discountValue, docId]);
+            await db.executeSql(query, [
+              document_number, clientName, date, JSON.stringify(items), total, discountType, discountValue,
+              deposit || 0, has_gst ? 1 : 0, gst_rate || 0, clientAddress, clientEmail, clientPhone,
+              docId
+            ]);
         } catch (error) {
             console.error(`Error updating document type ${docType}`, error);
             throw error;
@@ -123,4 +163,41 @@ export const deleteDocument = async (docId, docType) => {
         console.error(`Error deleting document type ${docType}`, error);
         throw error;
     }
+};
+
+export const getUniqueCustomers = async (storeId) => {
+  const db = await getDatabase();
+  const query = `
+    SELECT clientName, clientAddress, clientEmail, clientPhone 
+    FROM invoices 
+    WHERE storeId = ? 
+    UNION 
+    SELECT clientName, clientAddress, clientEmail, clientPhone 
+    FROM quotes 
+    WHERE storeId = ? 
+    UNION 
+    SELECT clientName, clientAddress, clientEmail, clientPhone 
+    FROM delivery_notes 
+    WHERE storeId = ?
+  `;
+  try {
+    const [results] = await db.executeSql(query, [storeId, storeId, storeId]);
+    const rawRows = results.rows.raw();
+    
+    // De-duplicate by clientName in JS because UNION handles full row uniqueness
+    // but we might want unique names, taking the most recent or populated details.
+    // However, the spec says "suggest names of previous customers", so distinct names are key.
+    // The query above returns unique combinations of all fields. 
+    // Let's filter to unique names for the suggestion list.
+    const uniqueMap = new Map();
+    rawRows.forEach(row => {
+      if (!uniqueMap.has(row.clientName)) {
+        uniqueMap.set(row.clientName, row);
+      }
+    });
+    return Array.from(uniqueMap.values());
+  } catch (error) {
+    console.error('Error getting unique customers', error);
+    return [];
+  }
 };

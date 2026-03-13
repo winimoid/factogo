@@ -186,5 +186,20 @@
     "fixed": "Le nu si le ɖeɖeɖe",
     "percentage": "Ɣedzeɖeɖe",
     "convert_to_delivery_note": "Tɔ na agbalẽ ƒe ɖoɖoɖo",
-    "convert_to_invoice": "Tɔ na agbalẽ ƒe xɔxɔme"
+    "convert_to_invoice": "Tɔ na agbalẽ ƒe xɔxɔme",
+    "deposit": "Acompte",
+    "has_gst": "Tsɔ GST (1%) de eme",
+    "gst_rate": "GST ƒe dzesi (%)",
+    "gst_label": "GST",
+    "balance_due": "Susue nàxe",
+    "deposit_paid": "Acompte xe",
+    "customer_suggestions": "Dɔwɔlawo ƒe susu",
+    "whats_new_title": "Nya yeye le Dzesi 3.0 me",
+    "whats_new_deposit": "Domefia acompte le wo ƒe gblɔɖiwo kple susuwó me.",
+    "whats_new_gst": "Tsɔ GST adzɔ si nàtɔ ɖe wo ƒe nyatɔwo ŋu.",
+    "whats_new_suggestions": "Tiatia dɔwɔla siwo gbɔna kaba kple ŋkɔ ƒe susu.",
+    "client_address": "Nɔƒe",
+    "client_email": "Email",
+    "client_phone": "Kaƒoƒo",
+    "default_gst_rate": "GST ƒe dzesi gbãtɔ (%)"
 }

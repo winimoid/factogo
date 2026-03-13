@@ -19,27 +19,37 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
   const outfitBoldBase64 = await loadFontAsBase64('Outfit-Bold');
 
   const isDeliveryNote = type === 'delivery_note';
-  const total = item.total || 0;
+  // item.total is Grand Total (TTC) for invoices/quotes, or Total Quantity for delivery notes
+  const total = item.total || 0; 
   const items = item.items ? JSON.parse(item.items) : [];
   
   // Calculate values for discount display
-  let totalBeforeDiscount = total;
+  let totalBeforeDiscount = 0;
   let discountAmount = 0;
   
-  // Calculate total before discount and discount amount if discount exists
+  // Re-calculate basic totals from items to be safe/consistent
+  const calculatedSubtotal = items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+
   if (item.discountValue && item.discountValue > 0) {
     if (item.discountType === 'percentage') {
-      totalBeforeDiscount = total / (1 - item.discountValue / 100);
-      discountAmount = totalBeforeDiscount * (item.discountValue / 100);
+      discountAmount = (calculatedSubtotal * item.discountValue) / 100;
     } else { // fixed discount
-      totalBeforeDiscount = total + item.discountValue;
       discountAmount = item.discountValue;
     }
   }
+  
+  totalBeforeDiscount = calculatedSubtotal;
+  const netTotal = Math.max(0, calculatedSubtotal - discountAmount); // This is Total HT (Net Commercial)
+
+  // Use passed values or fallbacks
+  const hasGst = !!item.has_gst;
+  const gstRate = item.gst_rate || 0;
+  const gstAmount = item.gst_amount || (hasGst ? (netTotal * gstRate / 100) : 0);
+  const deposit = item.deposit || 0;
+  const balanceDue = item.balance_due !== undefined ? item.balance_due : Math.max(0, total - deposit);
 
   const totalInWords = toWords(total, locale, { currency: !isDeliveryNote });
   const totalQuantity = items.reduce((acc, i) => acc + i.quantity, 0);
-  const totalQuantityInWords = toWords(totalQuantity, locale, { currency: false });
 
   const getBase64Image = async (uri) => {
     if (!uri) return '';
@@ -70,6 +80,10 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
       footerText = activeStore.customTexts;
     }
   }
+  
+  if (!headerText && activeStore?.name) {
+    headerText = activeStore.name;
+  }
 
   const date = new Date(item.date);
   const formattedDate = `Libreville, ${date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}`;
@@ -88,8 +102,56 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
   const templateId = activeStore?.documentTemplateId;
   let finalHtml;
 
-  // Common HTML generation logic can be defined here if it doesn't change between templates.
-  // For this example, we'll regenerate the full HTML inside the switch to be safe.
+  // Helper to generate the totals table rows
+  const generateTotalsRows = () => {
+    let rows = '';
+    // If discount exists, show subtotal (gross) and discount
+    if (discountAmount > 0) {
+        rows += `<tr><td class="label">${t('total_amount')}</td><td class="text-right">${totalBeforeDiscount.toLocaleString(locale)} FCFA</td></tr>`;
+        rows += `<tr><td class="label">${t('discount')}</td><td class="text-right">-${discountAmount.toLocaleString(locale)} FCFA</td></tr>`;
+    }
+    
+    // Total HT (Net Total)
+    rows += `<tr><td class="label">${t('total_ht')}</td><td class="text-right">${netTotal.toLocaleString(locale)} FCFA</td></tr>`;
+
+    // GST
+    if (hasGst) {
+        rows += `<tr><td class="label">${t('gst_label')} (${gstRate}%)</td><td class="text-right">${gstAmount.toLocaleString(locale)} FCFA</td></tr>`;
+    }
+
+    // Total TTC (Grand Total)
+    rows += `<tr><td class="label">${t('total_ttc')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr>`;
+
+    // Deposit and Balance
+    if (deposit > 0) {
+        rows += `<tr><td class="label">${t('deposit_paid')}</td><td class="text-right">-${deposit.toLocaleString(locale)} FCFA</td></tr>`;
+        rows += `<tr><td class="label" style="color: ${primaryColor || 'black'};">${t('balance_due')}</td><td class="text-right" style="color: ${primaryColor || 'black'}; font-weight: bold;">${balanceDue.toLocaleString(locale)} FCFA</td></tr>`;
+    }
+
+    return rows;
+  };
+
+  const generateTotalsDivs = (stylePrefix = '') => {
+    let divs = '';
+    if (discountAmount > 0) {
+       divs += `<div class="total">${t('total_amount')}: ${totalBeforeDiscount.toLocaleString(locale)}</div>`;
+       divs += `<div class="total">${t('discount')}: -${discountAmount.toLocaleString(locale)}</div>`;
+    }
+    divs += `<div class="total">${t('total_ht')}: ${netTotal.toLocaleString(locale)}</div>`;
+    
+    if (hasGst) {
+        divs += `<div class="total">${t('gst_label')} (${gstRate}%): ${gstAmount.toLocaleString(locale)}</div>`;
+    }
+
+    divs += `<div class="total">${t('total_ttc')}: ${total.toLocaleString(locale)}</div>`;
+
+    if (deposit > 0) {
+        divs += `<div class="total">${t('deposit_paid')}: -${deposit.toLocaleString(locale)}</div>`;
+        divs += `<div class="total" style="color: red;">${t('balance_due')}: ${balanceDue.toLocaleString(locale)}</div>`;
+    }
+    return divs;
+  };
+
 
   switch (templateId) {
     case 2: { // Modern Template
@@ -154,14 +216,9 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
         totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_quantity')}</td><td class="text-right">${totalQuantity}</td></tr></tbody></table></div>`;
         signatureHtml = `<div class="signature-section multi"><div class="signature-box"><span class="text-bold">${t('reception_acknowledgement')}</span><div style="height: 80px;"></div></div><div class="signature-box"><span class="text-bold">${t('manager')}</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div></div>`;
       } else {
-        headerDetailsHtml = `<div>${docTitleHtml}</div><div style="text-align: right; margin-top: 20px;"><div class="client-info" style="display: inline-block; width: 250px;"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>- Libreville -</div></div>`;
+        headerDetailsHtml = `<div>${docTitleHtml}</div><div style="text-align: right; margin-top: 20px;"><div class="client-info" style="display: inline-block; width: 250px;"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>${item.clientAddress ? item.clientAddress + '<br/>' : ''}${item.clientPhone ? item.clientPhone + '<br/>' : ''}- Libreville -</div></div>`;
         itemsTableHtml = `<table class="items-table"><thead><tr><th>${t('designation')}</th><th class="text-center">${t('quantity_short')}</th><th class="text-right">${t('unit_price_short')}</th><th class="text-right">${t('total_amount')}</th></tr></thead><tbody>${items.map(i => `<tr><td>${i.description}</td><td class="text-center">${i.quantity}</td><td class="text-right">${i.price.toLocaleString(locale)}</td><td class="text-right">${(i.quantity * i.price).toLocaleString(locale)}</td></tr>`).join('')}</tbody></table>`;
-        // Generate totals HTML based on whether there is a discount
-        if (discountAmount > 0) {
-          totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_ht')}</td><td class="text-right">${totalBeforeDiscount.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('discount')}</td><td class="text-right">-${discountAmount.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('total_ttc')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr></tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
-        } else {
-          totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_ht')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('total_ttc')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr></tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
-        }
+        totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody>${generateTotalsRows()}</tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
         signatureHtml = `<div class="signature-section single"><span class="text-bold">${t('manager')}</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div>`;
       }
       finalHtml = `<html><head><style>${styles}</style></head><body><table class="document-wrapper"><thead><tr><td><div id="page-header"><div id="page-header-content"><div class="header-flex"><div>${logoBase64 ? `<img src="${logoBase64}" class="header-logo" />` : ''}</div><div class="header-company-details"><p>${headerText}</p></div></div></div></div></td></tr></thead><tbody><tr><td id="main-content">${headerDetailsHtml}${itemsTableHtml}${totalsHtml}${signatureHtml}</td></tr></tbody><tfoot><tr><td><div id="page-footer"><div id="page-footer-content"><p>${footerText}</p></div></div></td></tr></tfoot></table></body></html>`;
@@ -300,6 +357,8 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
               <div style="width: 48%;">
                   <strong>${t('client')}:</strong><br/>
                   ${item.clientName}<br/>
+                  ${item.clientAddress ? item.clientAddress + '<br/>' : ''}
+                  ${item.clientPhone ? item.clientPhone + '<br/>' : ''}
               </div>
               <div style="width: 48%;">
                   <strong>${t('order_reference')}:</strong> <span style="color: red;">${item.order_reference || ''}</span><br/>
@@ -351,6 +410,8 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
           <div style="margin-top: 20px; padding: 10px; border: 1px solid #000; text-align: left;">
               <strong>${t('client')}:</strong><br/>
               ${item.clientName}<br/>
+              ${item.clientAddress ? item.clientAddress + '<br/>' : ''}
+              ${item.clientPhone ? item.clientPhone + '<br/>' : ''}
               - Libreville -
           </div>
         `;
@@ -388,12 +449,7 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
             <div class="footer-flex" style="justify-content: flex-end;">
               <div class="totals-area">
                 ${item.status ? `<div class="status">${item.status.toUpperCase()}</div>` : ''}
-                ${discountAmount > 0 
-                  ? `<div class="total">${t('total_ht')}: ${totalBeforeDiscount.toLocaleString(locale)}</div>
-                     <div class="total">${t('discount')}: -${discountAmount.toLocaleString(locale)}</div>
-                     <div class="total">${t('total_ttc')}: ${total.toLocaleString(locale)}</div>`
-                  : `<div class="total">${t('total_prefix')} ${total.toLocaleString(locale)}</div>`
-                }
+                ${generateTotalsDivs()}
               </div>
             </div>
             <div class="total-in-words">
@@ -496,14 +552,9 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
         totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_quantity')}</td><td class="text-right">${totalQuantity}</td></tr></tbody></table></div>`;
         signatureHtml = `<div class="signature-section multi"><div class="signature-box"><span class="text-bold">${t('reception_acknowledgement')}</span><div style="height: 80px;"></div></div><div class="signature-box"><span class="text-bold">${t('manager')}</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div></div>`;
       } else {
-        headerDetailsHtml = `<div>${docTitleHtml}</div><div style="text-align: right; margin-top: 20px;"><div class="client-info" style="display: inline-block; width: 250px;"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>- Libreville -</div></div>`;
+        headerDetailsHtml = `<div>${docTitleHtml}</div><div style="text-align: right; margin-top: 20px;"><div class="client-info" style="display: inline-block; width: 250px;"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>${item.clientAddress ? item.clientAddress + '<br/>' : ''}${item.clientPhone ? item.clientPhone + '<br/>' : ''}- Libreville -</div></div>`;
         itemsTableHtml = `<table class="items-table"><thead><tr><th>${t('designation')}</th><th class="text-center">${t('quantity_short')}</th><th class="text-right">${t('unit_price_short')}</th><th class="text-right">${t('total_amount')}</th></tr></thead><tbody>${items.map(i => `<tr><td>${i.description}</td><td class="text-center">${i.quantity}</td><td class="text-right">${i.price.toLocaleString(locale)}</td><td class="text-right">${(i.quantity * i.price).toLocaleString(locale)}</td></tr>`).join('')}</tbody></table>`;
-        // Generate totals HTML based on whether there is a discount
-        if (discountAmount > 0) {
-          totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_ht')}</td><td class="text-right">${totalBeforeDiscount.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('discount')}</td><td class="text-right">-${discountAmount.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('total_ttc')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr></tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
-        } else {
-          totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_ht')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr><tr><td class="label">${t('total_ttc')}</td><td class="text-right">${total.toLocaleString(locale)} FCFA</td></tr></tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
-        }
+        totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody>${generateTotalsRows()}</tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
         signatureHtml = `<div class="signature-section single"><span class="text-bold">${t('manager')}</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div>`;
       }
       finalHtml = `<html><head><style>${styles}</style></head><body><table class="document-wrapper"><thead><tr><td><div id="page-header"><div id="page-header-content"><div class="header-flex"><div>${logoBase64 ? `<img src="${logoBase64}" class="header-logo" />` : ''}</div><div class="header-company-details"><p>${headerText}</p></div></div></div></div></td></tr></thead><tbody><tr><td id="main-content">${headerDetailsHtml}${itemsTableHtml}${totalsHtml}${signatureHtml}</td></tr></tbody><tfoot><tr><td><div id="page-footer"><div id="page-footer-content"><p>${footerText}</p></div></div></td></tr></tfoot></table></body></html>`;

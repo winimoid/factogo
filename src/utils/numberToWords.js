@@ -63,7 +63,12 @@ function convertThreeDigits(num, lang) {
 
   if (num >= 100) {
     const hundred = Math.floor(num / 100);
-    result += (hundred > 0 ? L.ones[hundred] + ' ' : '') + L.hundred;
+    if (lang === 'fr' && hundred === 1 && num >= 100 && num < 200) {
+      // In French, 100-199 doesn't use "un cent", just "cent"
+      result += L.hundred;
+    } else {
+      result += (hundred > 0 ? L.ones[hundred] + ' ' : '') + L.hundred;
+    }
     if (num % 100 !== 0) result += ' ';
     num %= 100;
   }
@@ -74,14 +79,36 @@ function convertThreeDigits(num, lang) {
     } else {
       const ten = Math.floor(num / 10);
       const one = num % 10;
-      result += L.tens[ten];
-      if (one > 0) {
-        if (lang === 'es') {
-          result += L.joinWord + L.ones[one];
-        } else if (lang === 'fr' && one === 1 && (ten === 2 || ten === 3 || ten === 4 || ten === 5 || ten === 6)) {
-          result += ' ' + L.andWord + ' ' + L.ones[one]; // ex: vingt et un
+
+      if (lang === 'fr') {
+        // Handle special French cases for 70-79 and 90-99
+        if (ten === 7) {
+          // For 70-79: soixante + (10 + ones)
+          result += L.tens[6] + L.joinWord + L.ones[10 + one];
+        } else if (ten === 9) {
+          // For 90-99: quatre-vingt + (10 + ones)
+          result += L.tens[8] + L.joinWord + L.ones[10 + one];
         } else {
-          result += L.joinWord + L.ones[one];
+          result += L.tens[ten];
+          if (one > 0) {
+            if (one === 1 && (ten === 2 || ten === 3 || ten === 4 || ten === 5 || ten === 6 || ten === 8)) {
+              result += ' ' + L.andWord + ' ' + L.ones[one]; // ex: vingt et un, quatre-vingt et un
+            } else {
+              result += L.joinWord + L.ones[one];
+            }
+          }
+        }
+      } else {
+        // Other languages
+        result += L.tens[ten];
+        if (one > 0) {
+          if (lang === 'es') {
+            result += L.joinWord + L.ones[one];
+          } else if (lang === 'fr' && one === 1 && (ten === 2 || ten === 3 || ten === 4 || ten === 5 || ten === 6)) {
+            result += ' ' + L.andWord + ' ' + L.ones[one]; // ex: vingt et un
+          } else {
+            result += L.joinWord + L.ones[one];
+          }
         }
       }
     }
