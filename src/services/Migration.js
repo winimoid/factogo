@@ -1,3 +1,13 @@
+import * as crypto from 'react-native-get-random-values';
+import bcrypt from 'bcryptjs';
+
+// Manually set the random fallback for bcryptjs
+bcrypt.setRandomFallback((len) => {
+  const array = new Uint8Array(len);
+  crypto.getRandomValues(array);
+  return array;
+});
+
 const migrations = [
   {
     version: 1,
@@ -55,6 +65,23 @@ const migrations = [
   },
 ];
 
+const hashExistingPasswords = async (db) => {
+  try {
+    const [results] = await db.executeSql('SELECT id, username, password FROM users;');
+    for (let i = 0; i < results.rows.length; i++) {
+      const user = results.rows.item(i);
+      // Bcrypt hashes typically start with $2a$ or $2b$
+      if (user.password && !user.password.startsWith('$2a$') && !user.password.startsWith('$2b$')) {
+        const salt = bcrypt.genSaltSync(10);
+        const hashedPassword = bcrypt.hashSync(user.password, salt);
+        await db.executeSql('UPDATE users SET password = ? WHERE id = ?;', [hashedPassword, user.id]);
+      }
+    }
+  } catch (error) {
+    console.error('Error in hashExistingPasswords migration:', error);
+  }
+};
+
 export const runMigrations = async (db) => {
   // 1. Ensure the version table exists.
   await db.transaction(tx => {
@@ -108,4 +135,7 @@ export const runMigrations = async (db) => {
       }
     }
   }
+
+  // 4. One-time migration for hashing existing passwords
+  await hashExistingPasswords(db);
 };

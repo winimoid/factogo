@@ -4,7 +4,7 @@ import { View, StyleSheet, Image } from 'react-native';
 import { TextInput, Button, Text, useTheme, Card, Title, Snackbar, ActivityIndicator } from 'react-native-paper';
 import { LanguageContext } from '../../contexts/LanguageContext';
 import { AuthContext } from '../../contexts/AuthContext';
-import { addUser, getUser } from '../../services/Database';
+import { addUser, getUser, verifyUser } from '../../services/Database';
 import { typography } from '../../styles/typography';
 
 const LoginScreen = ({ navigation }) => {
@@ -25,8 +25,8 @@ const LoginScreen = ({ navigation }) => {
     }
     setLoading(true);
     try {
-      const user = await getUser(username);
-      if (user && user.password === password) {
+      const user = await verifyUser(username, password);
+      if (user) {
         setUser(user); // Set the user object in AuthContext
         setIsAuthenticated(true);
       } else {

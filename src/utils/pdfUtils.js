@@ -48,7 +48,7 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
   const deposit = item.deposit || 0;
   const balanceDue = item.balance_due !== undefined ? item.balance_due : Math.max(0, total - deposit);
 
-  const totalInWords = toWords(total, locale, { currency: !isDeliveryNote });
+  const totalInWords = toWords(balanceDue, locale, { currency: !isDeliveryNote });
   const totalQuantity = items.reduce((acc, i) => acc + i.quantity, 0);
 
   const getBase64Image = async (uri) => {
@@ -211,12 +211,12 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
       const docTitleHtml = `<div class="document-title">${getDocumentTitle(type)} ${t('document_number_prefix')} ${item?.document_number || ''}</div><div>${formattedDate}</div>`;
       let headerDetailsHtml, itemsTableHtml, totalsHtml, signatureHtml;
       if (isDeliveryNote) {
-        headerDetailsHtml = `<div>${docTitleHtml}</div><div class="document-details" style="margin-top: 20px;"><div class="order-info"><span class="text-bold">${t('order_reference')}:</span> <span style="color: red;">${item.order_reference || ''}</span><br/><span class="text-bold">${t('payment_method')}:</span> ${item.payment_method || ''}</div><div class="client-info"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>- Libreville -</div></div>`;
+        headerDetailsHtml = `<div>${docTitleHtml}</div><div class="document-details" style="margin-top: 20px;"><div class="order-info"><span class="text-bold">${t('order_reference')}:</span> <span style="color: red;">${item.order_reference || ''}</span><br/><span class="text-bold">${t('payment_method')}:</span> ${item.payment_method || ''}</div><div class="client-info"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/> ${item.clientAddress ? item.clientAddress : '- Libreville -'}</div></div>`;
         itemsTableHtml = `<table class="items-table"><thead><tr><th class="col-numero">${t('item_number_short')}</th><th>${t('designation')}</th><th class="col-quantity text-center">${t('quantity_short')}</th></tr></thead><tbody>${items.map((i, index) => `<tr><td class="text-center">${index + 1}</td><td>${i.description}</td><td class="text-center">${i.quantity}</td></tr>`).join('')}</tbody></table>`;
         totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_quantity')}</td><td class="text-right">${totalQuantity}</td></tr></tbody></table></div>`;
         signatureHtml = `<div class="signature-section multi"><div class="signature-box"><span class="text-bold">${t('reception_acknowledgement')}</span><div style="height: 80px;"></div></div><div class="signature-box"><span class="text-bold">${t('manager')}</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div></div>`;
       } else {
-        headerDetailsHtml = `<div>${docTitleHtml}</div><div style="text-align: right; margin-top: 20px;"><div class="client-info" style="display: inline-block; width: 250px;"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>${item.clientAddress ? item.clientAddress + '<br/>' : ''}${item.clientPhone ? item.clientPhone + '<br/>' : ''}- Libreville -</div></div>`;
+        headerDetailsHtml = `<div>${docTitleHtml}</div><div style="text-align: right; margin-top: 20px;"><div class="client-info" style="display: inline-block; width: 250px;"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>${item.clientAddress ? item.clientAddress + '<br/>' : ''}${item.clientPhone ? item.clientPhone + '<br/>' : ''}</div></div>`;
         itemsTableHtml = `<table class="items-table"><thead><tr><th>${t('designation')}</th><th class="text-center">${t('quantity_short')}</th><th class="text-right">${t('unit_price_short')}</th><th class="text-right">${t('total_amount')}</th></tr></thead><tbody>${items.map(i => `<tr><td>${i.description}</td><td class="text-center">${i.quantity}</td><td class="text-right">${i.price.toLocaleString(locale)}</td><td class="text-right">${(i.quantity * i.price).toLocaleString(locale)}</td></tr>`).join('')}</tbody></table>`;
         totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody>${generateTotalsRows()}</tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
         signatureHtml = `<div class="signature-section single"><span class="text-bold">${t('manager')}</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div>`;
@@ -410,9 +410,8 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
           <div style="margin-top: 20px; padding: 10px; border: 1px solid #000; text-align: left;">
               <strong>${t('client')}:</strong><br/>
               ${item.clientName}<br/>
-              ${item.clientAddress ? item.clientAddress + '<br/>' : ''}
+              ${item.clientAddress ? item.clientAddress + '<br/>' : '- Libreville -'}
               ${item.clientPhone ? item.clientPhone + '<br/>' : ''}
-              - Libreville -
           </div>
         `;
 
@@ -547,12 +546,12 @@ export const generatePdfHtml = async (item, type, activeStore, t, locale, includ
       const docTitleHtml = `<div class="document-title">${getDocumentTitle(type)} ${t('document_number_prefix')} ${item?.document_number || ''}</div><div>${formattedDate}</div>`;
       let headerDetailsHtml, itemsTableHtml, totalsHtml, signatureHtml;
       if (isDeliveryNote) {
-        headerDetailsHtml = `<div>${docTitleHtml}</div><div class="document-details" style="margin-top: 20px;"><div class="order-info"><span class="text-bold">${t('order_reference')}:</span> <span style="color: red;">${item.order_reference || ''}</span><br/><span class="text-bold">${t('payment_method')}:</span> ${item.payment_method || ''}</div><div class="client-info"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>- Libreville -</div></div>`;
+        headerDetailsHtml = `<div>${docTitleHtml}</div><div class="document-details" style="margin-top: 20px;"><div class="order-info"><span class="text-bold">${t('order_reference')}:</span> <span style="color: red;">${item.order_reference || ''}</span><br/><span class="text-bold">${t('payment_method')}:</span> ${item.payment_method || ''}</div><div class="client-info"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>${item.clientAddress ? item.clientAddress : '- Libreville -'}</div></div>`;
         itemsTableHtml = `<table class="items-table"><thead><tr><th class="col-numero">${t('item_number_short')}</th><th>${t('designation')}</th><th class="col-quantity text-center">${t('quantity_short')}</th></tr></thead><tbody>${items.map((i, index) => `<tr><td class="text-center">${index + 1}</td><td>${i.description}</td><td class="text-center">${i.quantity}</td></tr>`).join('')}</tbody></table>`;
         totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody><tr><td class="label">${t('total_quantity')}</td><td class="text-right">${totalQuantity}</td></tr></tbody></table></div>`;
         signatureHtml = `<div class="signature-section multi"><div class="signature-box"><span class="text-bold">${t('reception_acknowledgement')}</span><div style="height: 80px;"></div></div><div class="signature-box"><span class="text-bold">${t('manager')}</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div></div>`;
       } else {
-        headerDetailsHtml = `<div>${docTitleHtml}</div><div style="text-align: right; margin-top: 20px;"><div class="client-info" style="display: inline-block; width: 250px;"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>${item.clientAddress ? item.clientAddress + '<br/>' : ''}${item.clientPhone ? item.clientPhone + '<br/>' : ''}- Libreville -</div></div>`;
+        headerDetailsHtml = `<div>${docTitleHtml}</div><div style="text-align: right; margin-top: 20px;"><div class="client-info" style="display: inline-block; width: 250px;"><span class="text-bold">${t('client')}:</span><br/>${item.clientName}<br/>${item.clientAddress ? item.clientAddress + '<br/>' : ''}${item.clientPhone ? item.clientPhone + '<br/>' : ''}</div></div>`;
         itemsTableHtml = `<table class="items-table"><thead><tr><th>${t('designation')}</th><th class="text-center">${t('quantity_short')}</th><th class="text-right">${t('unit_price_short')}</th><th class="text-right">${t('total_amount')}</th></tr></thead><tbody>${items.map(i => `<tr><td>${i.description}</td><td class="text-center">${i.quantity}</td><td class="text-right">${i.price.toLocaleString(locale)}</td><td class="text-right">${(i.quantity * i.price).toLocaleString(locale)}</td></tr>`).join('')}</tbody></table>`;
         totalsHtml = `<div class="totals-section"><table class="totals-table"><tbody>${generateTotalsRows()}</tbody></table></div><div class="total-in-words">${t(type === 'invoice' ? 'total_summary_invoice' : 'total_summary_quote', { documentType: getDocumentTitle(type) })} <span class="text-bold">${totalInWords}</span>.</div>`;
         signatureHtml = `<div class="signature-section single"><span class="text-bold">${t('manager')}</span>${includeSignature ? `<div class="signature-images"><img src="${signatureBase64}" /><img src="${stampBase64}" /></div>` : '<div style="height: 80px;"></div>'}</div>`;

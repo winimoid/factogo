@@ -1,6 +1,15 @@
 import SQLite from 'react-native-sqlite-storage';
 import { runMigrations } from './Migration';
 import { seedDefaultTemplates } from './DocumentTemplateService';
+import * as crypto from 'react-native-get-random-values';
+import bcrypt from 'bcryptjs';
+
+// Manually set the random fallback for bcryptjs
+bcrypt.setRandomFallback((len) => {
+  const array = new Uint8Array(len);
+  crypto.getRandomValues(array);
+  return array;
+});
 
 SQLite.DEBUG(true);
 SQLite.enablePromise(true);
@@ -50,9 +59,11 @@ export const getDatabase = async () => {
 // User functions
 export const addUser = async (username, password) => {
   const db = await getDatabase();
+  const salt = bcrypt.genSaltSync(10);
+  const hashedPassword = bcrypt.hashSync(password, salt);
   const query = 'INSERT INTO users (username, password) VALUES (?, ?)';
   try {
-    await db.executeSql(query, [username, password]);
+    await db.executeSql(query, [username, hashedPassword]);
   } catch (error) {
     console.error('Error adding user', error);
   }
@@ -68,6 +79,14 @@ export const getUser = async (username) => {
     console.error('Error getting user', error);
     return null;
   }
+};
+
+export const verifyUser = async (username, password) => {
+  const user = await getUser(username);
+  if (user && bcrypt.compareSync(password, user.password)) {
+    return user;
+  }
+  return null;
 };
 
 // ... (rest of the database functions)

@@ -148,8 +148,11 @@ const SettingsScreen = ({ navigation }) => {
             <Button icon="store" mode="contained" onPress={() => navigation.navigate('ManageStores')} style={styles.managementButton} labelStyle={typography.button}>
               {t('manage_stores')}
             </Button>
-            <Button icon="file-document" mode="contained" onPress={() => navigation.navigate('ManageTemplates')} labelStyle={typography.button}>
+            <Button icon="file-document" mode="contained" onPress={() => navigation.navigate('ManageTemplates')} style={styles.managementButton} labelStyle={typography.button}>
               {t('manage_templates')}
+            </Button>
+            <Button icon="cloud-upload" mode="contained" onPress={() => navigation.navigate('BackupRestore')} labelStyle={typography.button}>
+              {t('backupRestore.title')}
             </Button>
           </Card.Content>
         </Card>

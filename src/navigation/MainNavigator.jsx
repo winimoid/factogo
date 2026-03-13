@@ -151,6 +151,14 @@ const MainNavigator = () => {
           headerShown: true,
         })} 
       />
+      <Stack.Screen 
+        name="BackupRestore" 
+        component={BackupRestoreScreen} 
+        options={() => ({ 
+          title: t('backupRestore.title'),
+          headerShown: true,
+        })} 
+      />
     </Stack.Navigator>
   );
 };
