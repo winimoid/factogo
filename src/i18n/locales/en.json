@@ -194,12 +194,18 @@
   "balance_due": "Balance Due",
   "deposit_paid": "Deposit Paid",
   "customer_suggestions": "Customer Suggestions",
-  "whats_new_title": "What's New in Version 3.0",
+  "whats_new_title": "What's new in Version {{version}}? 🚀",
   "whats_new_deposit": "Manage deposits on your invoices and quotes.",
   "whats_new_gst": "Apply configurable GST tax to your documents.",
   "whats_new_suggestions": "Quickly select repeat customers with auto-fill suggestions.",
+  "lets_go": "Let's go!",
   "client_address": "Address",
   "client_email": "Email",
   "client_phone": "Phone",
-  "default_gst_rate": "Default GST Rate (%)"
+  "default_gst_rate": "Default GST Rate (%)",
+  "last_update_label": "Last Update:",
+  "username_required": "Username is required.",
+  "password_required": "Password is required.",
+  "username_min_length": "Username must be at least 3 characters.",
+  "password_min_length": "Password must be at least 4 characters."
 }

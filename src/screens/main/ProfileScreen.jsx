@@ -3,14 +3,13 @@ import { View, StyleSheet, ScrollView, Linking } from 'react-native';
 import { Button, useTheme, Text, Card, Title, Paragraph, Divider } from 'react-native-paper';
 import { LanguageContext } from '../../contexts/LanguageContext';
 import { AuthContext } from '../../contexts/AuthContext';
+import { version as appVersion, lastupdate as lastUpdate } from '../../../package.json';
 import { typography } from '../../styles/typography';
 
 const ProfileScreen = () => {
   const { t } = useContext(LanguageContext);
   const { colors } = useTheme();
   const { user, setIsAuthenticated } = useContext(AuthContext);
-
-  const appVersion = '2.3.0';
 
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -37,6 +36,7 @@ const ProfileScreen = () => {
             <Title style={styles.cardTitle}>{t('app_information')}</Title>
             <Paragraph style={styles.paragraph}>{t('app_name_label')} Facto-Go</Paragraph>
             <Paragraph style={styles.paragraph}>{t('version_label')} {appVersion}</Paragraph>
+            <Paragraph style={styles.paragraph}>{t('last_update_label')} {lastUpdate}</Paragraph>
           </Card.Content>
         </Card>
 
@@ -46,7 +46,6 @@ const ProfileScreen = () => {
             <Paragraph style={styles.paragraph}>{'Mhénsa Moïse WINIGAH'}</Paragraph>
             <Paragraph style={styles.paragraph}>{'Email: moisewinigah@gmail.com'}</Paragraph>
             <Paragraph style={styles.paragraph}>{'Lomé, Togo'}</Paragraph>
-            <Paragraph style={styles.paragraph}>{'Tel: +228 98 38 99 34'}</Paragraph>
             <Divider style={styles.divider} />
             <Button icon="web" mode="outlined" onPress={() => openURL('https://virtualayers.netlify.app')} style={styles.websiteButton}>
               {t('developer_website')}

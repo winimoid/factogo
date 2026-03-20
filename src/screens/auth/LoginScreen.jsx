@@ -5,11 +5,14 @@ import { TextInput, Button, Text, useTheme, Card, Title, Snackbar, ActivityIndic
 import { LanguageContext } from '../../contexts/LanguageContext';
 import { AuthContext } from '../../contexts/AuthContext';
 import { addUser, getUser, verifyUser } from '../../services/Database';
+import { version as appVersion } from '../../../package.json';
 import { typography } from '../../styles/typography';
 
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [usernameError, setUsernameError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,14 +21,43 @@ const LoginScreen = ({ navigation }) => {
   const { colors } = useTheme();
   const { setIsAuthenticated, setUser } = useContext(AuthContext);
 
+  const validateForm = () => {
+    let isValid = true;
+
+    // Validate username
+    if (!username || username.trim() === '') {
+      setUsernameError(t('username_required'));
+      isValid = false;
+    } else {
+      setUsernameError('');
+    }
+
+    // Validate password
+    if (!password || password.trim() === '') {
+      setPasswordError(t('password_required'));
+      isValid = false;
+    } else {
+      setPasswordError('');
+    }
+
+    return isValid;
+  };
+
   const handleLogin = async () => {
+    // Special case for backup/restore
     if (username === '00001111' && password === '') {
       navigation.navigate('BackupRestore');
       return;
     }
+
+    // Validate before proceeding
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
     try {
-      const user = await verifyUser(username, password);
+      const user = await verifyUser(username.trim(), password.trim());
       if (user) {
         setUser(user); // Set the user object in AuthContext
         setIsAuthenticated(true);
@@ -49,7 +81,12 @@ const LoginScreen = ({ navigation }) => {
           <TextInput
             label={t('username')}
             value={username}
-            onChangeText={setUsername}
+            onChangeText={(text) => {
+              setUsername(text);
+              if (usernameError) setUsernameError('');
+            }}
+            error={!!usernameError}
+            helperText={usernameError}
             style={styles.input}
             mode="outlined"
             labelStyle={typography.body}
@@ -59,7 +96,12 @@ const LoginScreen = ({ navigation }) => {
           <TextInput
             label={t('password')}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (passwordError) setPasswordError('');
+            }}
+            error={!!passwordError}
+            helperText={passwordError}
             secureTextEntry
             style={styles.input}
             mode="outlined"
@@ -89,6 +131,8 @@ const LoginScreen = ({ navigation }) => {
       >
         {snackbarMessage}
       </Snackbar>
+
+      <Text style={styles.versionText}>v{appVersion}</Text>
     </View>
   );
 };
@@ -127,6 +171,13 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 10,
     paddingVertical: 8,
+  },
+  versionText: {
+    position: 'absolute',
+    bottom: 20,
+    fontSize: 12,
+    color: 'gray',
+    textAlign: 'center',
   },
 });
 

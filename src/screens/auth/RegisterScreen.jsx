@@ -5,11 +5,14 @@ import { TextInput, Button, Text, useTheme, Card, Title, Snackbar, ActivityIndic
 import { LanguageContext } from '../../contexts/LanguageContext';
 import { AuthContext } from '../../contexts/AuthContext';
 import { addUser } from '../../services/Database';
+import { version as appVersion } from '../../../package.json';
 import { typography } from '../../styles/typography';
 
 const RegisterScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [usernameError, setUsernameError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,10 +20,43 @@ const RegisterScreen = ({ navigation }) => {
   const { t } = useContext(LanguageContext);
   const { colors } = useTheme();
 
+  const validateForm = () => {
+    let isValid = true;
+
+    // Validate username
+    if (!username || username.trim() === '') {
+      setUsernameError(t('username_required'));
+      isValid = false;
+    } else if (username.trim().length < 3) {
+      setUsernameError(t('username_min_length'));
+      isValid = false;
+    } else {
+      setUsernameError('');
+    }
+
+    // Validate password
+    if (!password || password.trim() === '') {
+      setPasswordError(t('password_required'));
+      isValid = false;
+    } else if (password.trim().length < 4) {
+      setPasswordError(t('password_min_length'));
+      isValid = false;
+    } else {
+      setPasswordError('');
+    }
+
+    return isValid;
+  };
+
   const handleRegister = async () => {
+    // Validate before proceeding
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
     try {
-      await addUser(username, password);
+      await addUser(username.trim(), password.trim());
       setSnackbarMessage(t('user_registered_successfully'));
       setSnackbarVisible(true);
       setTimeout(() => {
@@ -46,7 +82,12 @@ const RegisterScreen = ({ navigation }) => {
           <TextInput
             label={t('username')}
             value={username}
-            onChangeText={setUsername}
+            onChangeText={(text) => {
+              setUsername(text);
+              if (usernameError) setUsernameError('');
+            }}
+            error={!!usernameError}
+            helperText={usernameError}
             style={styles.input}
             mode="outlined"
             labelStyle={typography.body}
@@ -56,7 +97,12 @@ const RegisterScreen = ({ navigation }) => {
           <TextInput
             label={t('password')}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (passwordError) setPasswordError('');
+            }}
+            error={!!passwordError}
+            helperText={passwordError}
             secureTextEntry
             style={styles.input}
             mode="outlined"
@@ -83,6 +129,8 @@ const RegisterScreen = ({ navigation }) => {
       >
         {snackbarMessage}
       </Snackbar>
+
+      <Text style={styles.versionText}>v{appVersion}</Text>
     </View>
   );
 };
@@ -121,6 +169,13 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 10,
     paddingVertical: 8,
+  },
+  versionText: {
+    position: 'absolute',
+    bottom: 20,
+    fontSize: 12,
+    color: 'gray',
+    textAlign: 'center',
   },
 });
 

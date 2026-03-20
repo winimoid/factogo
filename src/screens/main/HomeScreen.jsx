@@ -1,19 +1,22 @@
-import React, { useState, useContext, useCallback } from 'react';
+import React, { useState, useContext, useCallback, useEffect } from 'react';
 import { View, FlatList, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { Text, Card, IconButton, List, Dialog, Portal, Button, useTheme, ActivityIndicator, TextInput, SegmentedButtons, Title, Paragraph, Menu } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { TabView, TabBar } from 'react-native-tab-view';
 import { LanguageContext } from '../../contexts/LanguageContext';
 import { useStore } from '../../contexts/StoreContext';
-import { 
+import {
   getDocumentsForStore,
   deleteDocument
 } from '../../services/DocumentService';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import Share from 'react-native-share';
 import fs from 'react-native-fs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { version as appVersion } from '../../../package.json';
 import { typography } from '../../styles/typography';
 import { generatePdfHtml } from '../../utils/pdfUtils';
+import WhatsNewModal from '../../components/WhatsNewModal';
 
 const HomeScreen = ({ navigation }) => {
   const [invoices, setInvoices] = useState([]);
@@ -28,6 +31,7 @@ const HomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('date_newest');
+  const [whatsNewVisible, setWhatsNewVisible] = useState(false);
 
   const { t, locale } = useContext(LanguageContext);
   const { colors } = useTheme();
@@ -59,6 +63,52 @@ const HomeScreen = ({ navigation }) => {
   }, [activeStore]);
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData, activeStore]));
+
+  // Check version and show WhatsNew modal on first launch after update
+  useEffect(() => {
+    const checkVersionAndShowModal = async () => {
+      const LAST_VERSION_SEEN_KEY = 'last_version_seen';
+      const LEGACY_KEY = 'whats_new_v3_seen';
+
+      try {
+        const lastVersionSeen = await AsyncStorage.getItem(LAST_VERSION_SEEN_KEY);
+        const legacyKey = await AsyncStorage.getItem(LEGACY_KEY);
+
+        // Handle legacy key migration
+        if (legacyKey === 'true' && !lastVersionSeen) {
+          await AsyncStorage.setItem(LAST_VERSION_SEEN_KEY, appVersion);
+          await AsyncStorage.removeItem(LEGACY_KEY);
+          setWhatsNewVisible(true);
+          return;
+        }
+
+        // Fresh install or version changed
+        if (!lastVersionSeen || lastVersionSeen !== appVersion) {
+          setWhatsNewVisible(true);
+        }
+      } catch (error) {
+        console.error('Error checking version:', error);
+      }
+    };
+
+    checkVersionAndShowModal();
+  }, []);
+
+  const handleDismissWhatsNew = async () => {
+    const LAST_VERSION_SEEN_KEY = 'last_version_seen';
+    const LEGACY_KEY = 'whats_new_v3_seen';
+
+    try {
+      await AsyncStorage.setItem(LAST_VERSION_SEEN_KEY, appVersion);
+      const legacyKey = await AsyncStorage.getItem(LEGACY_KEY);
+      if (legacyKey) {
+        await AsyncStorage.removeItem(LEGACY_KEY);
+      }
+      setWhatsNewVisible(false);
+    } catch (error) {
+      console.error('Error dismissing WhatsNew modal:', error);
+    }
+  };
 
   const showDeleteDialog = (item, type) => {
     setItemToDelete(item);
@@ -223,6 +273,11 @@ ${t('date')}: ${item.date}`}
       )}
 
       <Portal>
+        <WhatsNewModal
+          visible={whatsNewVisible}
+          onDismiss={handleDismissWhatsNew}
+          version={appVersion}
+        />
         <Dialog visible={deleteDialogVisible} onDismiss={hideDeleteDialog} style={{ borderRadius: 8}}>
           <Dialog.Title style={styles.dialogTitle}>{t('confirm_deletion')}</Dialog.Title>
           <Dialog.Content><Paragraph style={styles.dialogParagraph}>{t('delete_confirmation_message', { type: t(itemTypeToDelete) })}</Paragraph></Dialog.Content>

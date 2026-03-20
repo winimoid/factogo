@@ -201,5 +201,11 @@
     "client_address": "Nɔƒe",
     "client_email": "Email",
     "client_phone": "Kaƒoƒo",
-    "default_gst_rate": "GST ƒe dzesi gbãtɔ (%)"
+    "default_gst_rate": "GST ƒe dzesi gbãtɔ (%)",
+    "lets_go": "Midzo!",
+    "last_update_label": "Esiawɔwɔ le ɣeyiɣi:",
+    "username_required": "Ŋkɔntabua ƒe ŋkɔ mesɔ gbɔ o.",
+    "password_required": "Nyagblɔɖi si dzi woɖe agbagba mesɔ gbɔ o.",
+    "username_min_length": "Ŋkɔntabua ƒe ŋkɔ sɔ gbɔ na ɖoɖo 3.",
+    "password_min_length": "Nyagblɔɖi si dzi woɖe agbagba sɔ gbɔ na ɖoɖo 4."
 }

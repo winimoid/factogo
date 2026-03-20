@@ -194,12 +194,18 @@
   "balance_due": "Reste à payer",
   "deposit_paid": "Acompte versé",
   "customer_suggestions": "Suggestions de clients",
-  "whats_new_title": "Nouveautés de la version 3.0",
+  "whats_new_title": "Nouveautés de la version {{version}}? 🚀",
   "whats_new_deposit": "Gérez les acomptes sur vos factures et devis.",
   "whats_new_gst": "Appliquez une TPS configurable à vos documents.",
   "whats_new_suggestions": "Sélectionnez rapidement les clients existants avec le remplissage automatique.",
+  "lets_go": "C'est parti !",
   "client_address": "Adresse",
   "client_email": "Email",
   "client_phone": "Téléphone",
-  "default_gst_rate": "Taux TPS par défaut (%)"
+  "default_gst_rate": "Taux TPS par défaut (%)",
+  "last_update_label": "Dernière mise à jour :",
+  "username_required": "Le nom d'utilisateur est requis.",
+  "password_required": "Le mot de passe est requis.",
+  "username_min_length": "Le nom d'utilisateur doit contenir au moins 3 caractères.",
+  "password_min_length": "Le mot de passe doit contenir au moins 4 caractères."
 }

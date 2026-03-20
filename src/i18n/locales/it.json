@@ -201,5 +201,11 @@
     "client_address": "Indirizzo",
     "client_email": "E-mail",
     "client_phone": "Telefono",
-    "default_gst_rate": "Aliquota GST predefinita (%)"
+    "default_gst_rate": "Aliquota GST predefinita (%)",
+    "lets_go": "Andiamo!",
+    "last_update_label": "Ultimo aggiornamento:",
+    "username_required": "Il nome utente è obbligatorio.",
+    "password_required": "La password è obbligatoria.",
+    "username_min_length": "Il nome utente deve contenere almeno 3 caratteri.",
+    "password_min_length": "La password deve contenere almeno 4 caratteri."
 }

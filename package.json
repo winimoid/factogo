@@ -1,6 +1,7 @@
 {
   "name": "factogo",
-  "version": "2.1",
+  "version": "3.0.0",
+  "lastupdate": "2026-03-14",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
